@@ -1,18 +1,23 @@
 import { Module } from '@nestjs/common';
 import { NecordModule } from 'necord';
-import { IntentsBitField } from 'discord.js';
-import { AppService } from '../app.service';
+import { GatewayIntentBits } from 'discord.js';
 import { ConfigModule } from '@nestjs/config';
+import { DiscordService } from './discord.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     NecordModule.forRoot({
       token: process.env.DISCORD_BOT_TOKEN,
-      intents: [IntentsBitField.Flags.Guilds],
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions,
+      ],
       development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
     }),
   ],
-  providers: [AppService],
+  providers: [DiscordService],
 })
 export class DiscordModule {}
