@@ -3,6 +3,7 @@ import { NecordModule } from 'necord';
 import { GatewayIntentBits } from 'discord.js';
 import { ConfigModule } from '@nestjs/config';
 import { DiscordService } from './discord.service';
+import { SongModule } from './commands/songs/song.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DiscordService } from './discord.service';
       ],
       development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
     }),
+    SongModule,
   ],
   providers: [DiscordService],
 })
