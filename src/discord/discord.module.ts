@@ -3,7 +3,9 @@ import { NecordModule } from 'necord';
 import { GatewayIntentBits } from 'discord.js';
 import { ConfigModule } from '@nestjs/config';
 import { DiscordService } from './discord.service';
-import { SongModule } from './commands/songs/song.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { GuildsEntity } from './entities/guilds.entity';
+import { GuildCreateService } from './services/guild-create.service';
 
 @Module({
   imports: [
@@ -18,8 +20,8 @@ import { SongModule } from './commands/songs/song.module';
       ],
       development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
     }),
-    SongModule,
+    TypeOrmModule.forFeature([GuildsEntity]),
   ],
-  providers: [DiscordService],
+  providers: [DiscordService, GuildCreateService],
 })
 export class DiscordModule {}
