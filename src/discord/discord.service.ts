@@ -1,27 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Client } from 'discord.js';
 import { Context, ContextOf, On, Once } from 'necord';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GuildsEntity } from './entities/guilds.entity';
 import { GuildCreateService } from './services/guild-create.service';
 
 @Injectable()
 export class DiscordService {
   private readonly logger = new Logger(DiscordService.name);
 
-  public constructor(
-    private readonly client: Client,
-    @InjectRepository(GuildsEntity)
-    private readonly guildRepository: Repository<GuildsEntity>,
-    private guildCreateService: GuildCreateService,
-  ) {}
+  public constructor(private guildCreateService: GuildCreateService) {}
 
   @Once('ready')
   public async onReady(@Context() [client]: ContextOf<'ready'>) {
-    // const guilds = await client.guilds.fetch();
-    // console.log(guilds);
     this.logger.log(`Bot logged in as ${client.user.username}`);
+    await this.guildCreateService.checkOnUnregisteredGuilds();
   }
 
   @On('guildCreate')

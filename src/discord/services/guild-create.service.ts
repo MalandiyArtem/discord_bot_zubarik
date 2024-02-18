@@ -36,4 +36,30 @@ export class GuildCreateService {
       );
     }
   }
+
+  public async checkOnUnregisteredGuilds() {
+    const guildsUsingBot = await this.client.guilds.fetch();
+    const guildsRegisteredInDb = await this.guildRepository.find();
+
+    const notRegisteredGuildId: string[] = [];
+
+    for (const [guildId] of guildsUsingBot) {
+      const isGuildRegistered = guildsRegisteredInDb.some(
+        (guildEntity) => guildEntity.guildId === guildId,
+      );
+
+      if (!isGuildRegistered) {
+        notRegisteredGuildId.push(guildId);
+      }
+    }
+
+    for (const id of notRegisteredGuildId) {
+      const guild = await this.client.guilds.fetch(id);
+      await this.registerGuild({
+        guildId: guild.id,
+        name: guild.name,
+        ownerId: guild.ownerId,
+      });
+    }
+  }
 }
