@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DiscordService } from './discord.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GuildsEntity } from './entities/guilds.entity';
-import { GuildCreateService } from './services/guild-create.service';
+import { GuildService } from './services/guild.service';
 
 @Module({
   imports: [
@@ -22,6 +22,6 @@ import { GuildCreateService } from './services/guild-create.service';
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
   ],
-  providers: [DiscordService, GuildCreateService],
+  providers: [DiscordService, GuildService],
 })
 export class DiscordModule {}
