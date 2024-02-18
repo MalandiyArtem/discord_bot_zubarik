@@ -9,8 +9,16 @@ export class DiscordService {
   public constructor(private readonly client: Client) {}
 
   @Once('ready')
-  public onReady(@Context() [client]: ContextOf<'ready'>) {
+  public async onReady(@Context() [client]: ContextOf<'ready'>) {
+    const guilds = await client.guilds.fetch();
+    console.log(guilds);
     this.logger.log(`Bot logged in as ${client.user.username}`);
+  }
+
+  @On('guildCreate')
+  public onReady2(@Context() [guild]: ContextOf<'guildCreate'>) {
+    console.log(guild);
+    this.logger.log(`GUILD ${guild}`);
   }
 
   @On('warn')
