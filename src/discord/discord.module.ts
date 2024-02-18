@@ -6,6 +6,7 @@ import { DiscordService } from './discord.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GuildsEntity } from './entities/guilds.entity';
 import { GuildService } from './services/guild.service';
+import { LogsChannelModule } from './commands/logs-channel/logs-channel.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { GuildService } from './services/guild.service';
       development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
+    LogsChannelModule,
   ],
   providers: [DiscordService, GuildService],
 })
