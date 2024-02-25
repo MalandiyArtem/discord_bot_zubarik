@@ -6,8 +6,8 @@ import { UtilsService } from '../../utils/utils.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShadowBanEntity } from './entities/shadow-ban.entity';
-import { GuildsEntity } from '../../../entities/guilds.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { ShadowBanPagination } from '../../../pagination/shadow-ban/shadow-ban-pagination';
 
 @Injectable()
 export class ShadowBanService {
@@ -17,8 +17,6 @@ export class ShadowBanService {
     private readonly utilService: UtilsService,
     @InjectRepository(ShadowBanEntity)
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
-    @InjectRepository(GuildsEntity)
-    private readonly guildRepository: Repository<GuildsEntity>,
     private readonly actionLoggerService: ActionLoggerService,
   ) {}
 
@@ -56,14 +54,11 @@ export class ShadowBanService {
         return Promise.resolve();
       }
 
-      const guild = await this.guildRepository.findOne({
-        where: { guildId: interaction.guildId },
-      });
       await this.shadowBanRepository.save({
         name: dto.name,
         channelIds: channelIds,
         userIds: userIds,
-        guild: guild,
+        guild: { guildId: interaction.guildId },
       });
 
       await interaction.reply({
@@ -85,6 +80,19 @@ export class ShadowBanService {
       });
       this.logger.error(`Shadow ban add ${interaction.guildId}: ${e}`);
     }
+  }
+
+  @SlashCommand({
+    name: 'shadow-ban-list',
+    description: 'Display list of shadow bans',
+    dmPermission: false,
+    defaultMemberPermissions: PermissionFlagsBits.Administrator,
+  })
+  public async onShadowBanList(@Context() [interaction]: SlashCommandContext) {
+    const shadowBanPagination = new ShadowBanPagination(
+      this.shadowBanRepository,
+    );
+    await shadowBanPagination.showList(interaction);
   }
 
   private async isNameTaken(name: string) {
