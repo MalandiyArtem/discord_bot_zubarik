@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../embeds/embeds.service';
-import { ShadowBanAddParams } from './types/shadow-ban-add-params';
+import { ShadowBanLogParams } from './types/shadow-ban-add-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -39,7 +39,7 @@ export class ActionLoggerService {
     }
   }
 
-  public async shadowBanAdd(options: ShadowBanAddParams) {
+  public async shadowBanAdd(options: ShadowBanLogParams) {
     try {
       const channels =
         options.channelIds.length > 0
@@ -66,6 +66,36 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Shadow Ban Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async shadowBanRemove(options: ShadowBanLogParams) {
+    try {
+      const channels =
+        options.channelIds.length > 0
+          ? options.channelIds.map((item) => `<#${item}>`).join(' ')
+          : 'All channels';
+      const users =
+        options.bannedUsersIds.length > 0
+          ? options.bannedUsersIds.map((userId) => `<@${userId}>`).join(' ')
+          : 'All users';
+
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Shadow ban list has been updated')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Shadow ban with name **${options.name}** has been deleted by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Name', value: options.name })
+        .addFields({ name: 'User', value: users })
+        .addFields({ name: 'Channel', value: channels });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Shadow Ban Remove ${options.guildId}: ${e}`);
     }
   }
 

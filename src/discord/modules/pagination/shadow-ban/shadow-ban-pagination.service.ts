@@ -10,27 +10,27 @@ import {
   InteractionResponse,
 } from 'discord.js';
 import { ButtonIds } from '../enums/button-ids.enum';
-import { ShadowBanEntity } from '../../modules/commands/shadow-ban/entities/shadow-ban.entity';
+import { ShadowBanEntity } from '../../commands/shadow-ban/entities/shadow-ban.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { EmbedsService } from '../../modules/embeds/embeds.service';
+import { EmbedsService } from '../../embeds/embeds.service';
 import { Injectable, Logger } from '@nestjs/common';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 
 @Injectable()
-export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> {
+export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanEntity> {
   private currentPage = 1;
   private totalPages: number = 0;
   private presets: ShadowBanEntity[] = [];
-  private embedService: EmbedsService;
-  private logger: Logger;
+  private readonly logger = new Logger(ShadowBanPaginationService.name);
 
   constructor(
     @InjectRepository(ShadowBanEntity)
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
+    private readonly embedsService: EmbedsService,
+    private readonly actionLoggerService: ActionLoggerService,
   ) {
     super(1);
-    this.embedService = new EmbedsService();
-    this.logger = new Logger(ShadowBanPagination.name);
   }
 
   public async showList(
@@ -38,9 +38,10 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
   ): Promise<void> {
     const shadowBan = await this.shadowBanRepository.find({
       where: { guild: { guildId: interaction.guildId } },
+      relations: ['guild'],
     });
 
-    const embed = this.embedService.getAddEmbed();
+    const embed = this.embedsService.getAddEmbed();
     this.presets = shadowBan;
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
 
@@ -68,6 +69,42 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
     });
     await this.handleButtons(interaction, reply, embed);
     return Promise.resolve();
+  }
+
+  protected paginateArray(
+    array: ShadowBanEntity[],
+    pageSize: number,
+    pageNumber: number,
+  ): ShadowBanEntity {
+    const startIndex = (pageNumber - 1) * pageSize;
+    const pageArray = array.slice(startIndex, startIndex + pageSize)[0];
+    return pageArray;
+  }
+
+  protected createActionRow(
+    currentPage: number,
+    totalPages: number,
+  ): ActionRowBuilder<ButtonBuilder> {
+    const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(ButtonIds.list_prev)
+        .setEmoji('⬅️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage === 1 || currentPage === 0),
+      new ButtonBuilder()
+        .setCustomId(ButtonIds.list_next)
+        .setEmoji('➡️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage === totalPages || currentPage === 0),
+      new ButtonBuilder()
+        .setCustomId(ButtonIds.list_delete)
+        .setLabel('Delete')
+        .setEmoji('⚠️')
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(currentPage === 0),
+    );
+
+    return btnRow;
   }
 
   protected handleButtons(
@@ -112,7 +149,7 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
     });
   }
 
-  private async updateEmbed(
+  protected async updateEmbed(
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
@@ -127,42 +164,6 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
       embeds: [embed],
       components: [this.createActionRow(this.currentPage, this.totalPages)],
     });
-  }
-
-  protected createActionRow(
-    currentPage: number,
-    totalPages: number,
-  ): ActionRowBuilder<ButtonBuilder> {
-    const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(ButtonIds.list_prev)
-        .setEmoji('⬅️')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === 1 || currentPage === 0),
-      new ButtonBuilder()
-        .setCustomId(ButtonIds.list_next)
-        .setEmoji('➡️')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(currentPage === totalPages || currentPage === 0),
-      new ButtonBuilder()
-        .setCustomId(ButtonIds.list_delete)
-        .setLabel('Delete')
-        .setEmoji('⚠️')
-        .setStyle(ButtonStyle.Danger)
-        .setDisabled(currentPage === 0),
-    );
-
-    return btnRow;
-  }
-
-  protected paginateArray(
-    array: ShadowBanEntity[],
-    pageSize: number,
-    pageNumber: number,
-  ): ShadowBanEntity {
-    const startIndex = (pageNumber - 1) * pageSize;
-    const pageArray = array.slice(startIndex, startIndex + pageSize)[0];
-    return pageArray;
   }
 
   private getEmbedInfo(pageNumber: number) {
@@ -198,7 +199,13 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
         banId: embedDeletedInfo.presetInfo.banId,
       });
 
-      // TODO: log action
+      await this.actionLoggerService.shadowBanRemove({
+        name: embedDeletedInfo.presetInfo.name,
+        channelIds: embedDeletedInfo.presetInfo.channelIds,
+        bannedUsersIds: embedDeletedInfo.presetInfo.userIds,
+        guildId: embedDeletedInfo.presetInfo.guild.guildId,
+        author: interaction.user,
+      });
 
       const isOnePage =
         this.currentPage === 1 && this.totalPages === this.currentPage;
@@ -216,14 +223,13 @@ export class ShadowBanPagination extends BasePaginationHandler<ShadowBanEntity> 
 
       const shadowBan = await this.shadowBanRepository.find({
         where: { guild: { guildId: interaction.guildId } },
+        relations: ['guild'],
       });
-      console.log(shadowBan);
 
       this.presets = shadowBan;
       this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
-      console.log(this.totalPages);
       if (this.totalPages === 0) {
-        const baseEmbed = this.embedService.getAddEmbed();
+        const baseEmbed = this.embedsService.getAddEmbed();
         baseEmbed.setTitle('No one user in shadow ban');
         await btnInteraction.update({ embeds: [baseEmbed], components: [] });
         return Promise.resolve();

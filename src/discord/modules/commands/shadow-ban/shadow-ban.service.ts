@@ -7,7 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShadowBanEntity } from './entities/shadow-ban.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
-import { ShadowBanPagination } from '../../../pagination/shadow-ban/shadow-ban-pagination';
+import { ShadowBanPaginationService } from '../../pagination/shadow-ban/shadow-ban-pagination.service';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class ShadowBanService {
@@ -18,6 +19,7 @@ export class ShadowBanService {
     @InjectRepository(ShadowBanEntity)
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @SlashCommand({
@@ -89,10 +91,10 @@ export class ShadowBanService {
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
   })
   public async onShadowBanList(@Context() [interaction]: SlashCommandContext) {
-    const shadowBanPagination = new ShadowBanPagination(
-      this.shadowBanRepository,
+    const shadowBanPaginationService = await this.moduleRef.create(
+      ShadowBanPaginationService,
     );
-    await shadowBanPagination.showList(interaction);
+    await shadowBanPaginationService.showList(interaction);
   }
 
   private async isNameTaken(name: string) {

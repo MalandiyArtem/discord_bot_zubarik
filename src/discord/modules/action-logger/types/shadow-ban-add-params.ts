@@ -1,6 +1,6 @@
 import { User } from 'discord.js';
 
-export type ShadowBanAddParams = {
+export type ShadowBanLogParams = {
   guildId: string;
   author: User;
   name: string;

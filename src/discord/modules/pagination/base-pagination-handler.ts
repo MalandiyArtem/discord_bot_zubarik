@@ -16,6 +16,10 @@ export abstract class BasePaginationHandler<T> {
     this.itemsPerPage = itemsPerPage;
   }
 
+  public abstract showList(
+    interaction: ChatInputCommandInteraction<CacheType>,
+  ): Promise<void>;
+
   protected abstract paginateArray(
     array: T[],
     pageSize: number,
@@ -33,8 +37,9 @@ export abstract class BasePaginationHandler<T> {
     embed: EmbedBuilder,
   ): Promise<void>;
 
-  public abstract showList(
-    interaction: ChatInputCommandInteraction<CacheType>,
+  protected abstract updateEmbed(
+    embed: EmbedBuilder,
+    btnInteraction: ButtonInteraction<CacheType>,
   ): Promise<void>;
 
   protected getTotalPages(array: T[], pageSize: number): number {
