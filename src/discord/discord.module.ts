@@ -6,7 +6,7 @@ import { DiscordService } from './discord.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GuildsEntity } from './entities/guilds.entity';
 import { GuildService } from './services/guild.service';
-import { LogsChannelModule } from './commands/logs-channel/logs-channel.module';
+import { LogsChannelModule } from './modules/commands/logs-channel/logs-channel.module';
 
 @Module({
   imports: [

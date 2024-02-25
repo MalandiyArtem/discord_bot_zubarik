@@ -1,15 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, Opts, SlashCommand, SlashCommandContext } from 'necord';
 import { LogsChannelDto } from './dto/logs-channel.dto';
-import {
-  Client,
-  EmbedBuilder,
-  PermissionFlagsBits,
-  TextChannel,
-} from 'discord.js';
+import { Client, PermissionFlagsBits } from 'discord.js';
 import { InjectRepository } from '@nestjs/typeorm';
-import { GuildsEntity } from '../../entities/guilds.entity';
+import { GuildsEntity } from '../../../entities/guilds.entity';
 import { Repository } from 'typeorm';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 
 @Injectable()
 export class LogsChannelService {
@@ -19,6 +15,7 @@ export class LogsChannelService {
     private readonly client: Client,
     @InjectRepository(GuildsEntity)
     private readonly guildRepository: Repository<GuildsEntity>,
+    private readonly actionLoggerService: ActionLoggerService,
   ) {}
 
   @SlashCommand({
@@ -42,30 +39,15 @@ export class LogsChannelService {
       await this.guildRepository
         .save(updatedGuild)
         .then(async () => {
-          // TODO: Create service for building embeds
-          const logsEmbed = new EmbedBuilder()
-            .setColor('Green')
-            .setTitle('Log channel updated')
-            .setURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
-            .setThumbnail(interaction.user?.avatarURL() || null)
-            .addFields({
-              name: ' ',
-              value: `Log channel has been added by <@${interaction.user?.id}>`,
-            })
-            .addFields({
-              name: 'New log channel',
-              value: `<#${dto.channel.id}>`,
-            })
-            .setTimestamp()
-            .setFooter({ text: 'Big Brother is always watching you' });
+          await this.actionLoggerService.addLogChannel(
+            interaction.guildId,
+            interaction.user,
+          );
 
           await interaction.reply({
             content: 'Channel for logs successfully added',
             ephemeral: true,
           });
-
-          const channel = dto.channel as TextChannel;
-          await channel.send({ embeds: [logsEmbed] });
         })
         .catch(async (e) => {
           await this.client.users.send(
