@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import { ShadowBanEntity } from '../modules/commands/shadow-ban/entities/shadow-ban.entity';
 
 @Entity({ name: 'guilds' })
 export class GuildsEntity {
@@ -13,4 +14,7 @@ export class GuildsEntity {
 
   @Column()
   ownerId: string;
+
+  @OneToMany(() => ShadowBanEntity, (shadowBan) => shadowBan.guild)
+  shadowBans: ShadowBanEntity[];
 }

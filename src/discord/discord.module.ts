@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GuildsEntity } from './entities/guilds.entity';
 import { GuildService } from './services/guild.service';
 import { LogsChannelModule } from './modules/commands/logs-channel/logs-channel.module';
+import { ShadowBanModule } from './modules/commands/shadow-ban/shadow-ban.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { LogsChannelModule } from './modules/commands/logs-channel/logs-channel.
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
     LogsChannelModule,
+    ShadowBanModule,
   ],
   providers: [DiscordService, GuildService],
 })
