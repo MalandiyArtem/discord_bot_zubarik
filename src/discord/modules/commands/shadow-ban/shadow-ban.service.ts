@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ShadowBanEntity } from './entities/shadow-ban.entity';
 import { GuildsEntity } from '../../../entities/guilds.entity';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 
 @Injectable()
 export class ShadowBanService {
@@ -18,6 +19,7 @@ export class ShadowBanService {
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildRepository: Repository<GuildsEntity>,
+    private readonly actionLoggerService: ActionLoggerService,
   ) {}
 
   @SlashCommand({
@@ -67,6 +69,14 @@ export class ShadowBanService {
       await interaction.reply({
         content: 'You successfully added user(s) to shadow ban list',
         ephemeral: true,
+      });
+
+      await this.actionLoggerService.shadowBanAdd({
+        guildId: interaction.guildId,
+        bannedUsersIds: userIds,
+        channelIds: channelIds,
+        author: interaction.user,
+        name: dto.name,
       });
     } catch (e) {
       await interaction.reply({

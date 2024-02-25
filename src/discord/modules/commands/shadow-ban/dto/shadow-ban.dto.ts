@@ -19,7 +19,8 @@ export class ShadowBanDto {
 
   @StringOption({
     name: 'channels',
-    description: 'Channels where users will be banned',
+    description:
+      'Channels where users will be banned (use # to add channels. Only text channels are available)',
     required: false,
   })
   channels: string;
