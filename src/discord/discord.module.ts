@@ -6,7 +6,9 @@ import { DiscordService } from './discord.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GuildsEntity } from './entities/guilds.entity';
 import { GuildService } from './services/guild.service';
-import { LogsChannelModule } from './commands/logs-channel/logs-channel.module';
+import { LogsChannelModule } from './modules/commands/logs-channel/logs-channel.module';
+import { ShadowBanModule } from './modules/commands/shadow-ban/shadow-ban.module';
+import { MessageModule } from './modules/message/message.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { LogsChannelModule } from './commands/logs-channel/logs-channel.module';
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
     LogsChannelModule,
+    ShadowBanModule,
+    MessageModule,
   ],
   providers: [DiscordService, GuildService],
 })
