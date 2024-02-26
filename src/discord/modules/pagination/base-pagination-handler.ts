@@ -8,6 +8,7 @@ import {
   EmbedBuilder,
   InteractionResponse,
 } from 'discord.js';
+import { UpdateEmbedOnEmptyRecordsType } from './types/update-embed-on-empty-records.type';
 
 export abstract class BasePaginationHandler<T> {
   protected itemsPerPage: number;
@@ -20,12 +21,6 @@ export abstract class BasePaginationHandler<T> {
     interaction: ChatInputCommandInteraction<CacheType>,
   ): Promise<void>;
 
-  protected abstract paginateArray(
-    array: T[],
-    pageSize: number,
-    pageNumber: number,
-  ): T;
-
   protected abstract createActionRow(
     currentPage: number,
     totalPages: number,
@@ -37,10 +32,30 @@ export abstract class BasePaginationHandler<T> {
     embed: EmbedBuilder,
   ): Promise<void>;
 
-  protected abstract updateEmbed(
+  protected abstract updateEmbedOnBtnClick(
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
   ): Promise<void>;
+
+  protected async updateEmbedOnEmptyRecords({
+    interaction,
+    btnInteraction,
+    reason,
+    title,
+    embed,
+  }: UpdateEmbedOnEmptyRecordsType): Promise<void> {
+    embed.setTitle(title);
+
+    if (reason === 'delete' && btnInteraction) {
+      await btnInteraction.update({ embeds: [embed], components: [] });
+      return Promise.resolve();
+    }
+
+    if (reason === 'request' && interaction) {
+      await interaction.reply({ ephemeral: true, embeds: [embed] });
+      return Promise.resolve();
+    }
+  }
 
   protected getTotalPages(array: T[], pageSize: number): number {
     return Math.ceil(array.length / pageSize);

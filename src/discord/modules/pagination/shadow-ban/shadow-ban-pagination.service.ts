@@ -36,27 +36,29 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
   public async showList(
     interaction: ChatInputCommandInteraction<CacheType>,
   ): Promise<void> {
-    const shadowBan = await this.shadowBanRepository.find({
+    this.presets = await this.shadowBanRepository.find({
       where: { guild: { guildId: interaction.guildId } },
       relations: ['guild'],
     });
-
-    const embed = this.embedsService.getAddEmbed();
-    this.presets = shadowBan;
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
 
     if (this.totalPages === 0) {
-      embed.setTitle('No one user in shadow ban');
-      await interaction.reply({ ephemeral: true, embeds: [embed] });
+      await this.updateEmbedOnEmptyRecords({
+        reason: 'request',
+        interaction,
+        title: 'No one user in shadow ban',
+        embed: this.embedsService.getAddEmbed(),
+      });
       return Promise.resolve();
     }
 
-    const embedInfo = this.getEmbedInfo(this.currentPage);
+    const pageInfo = this.getPageInfo(this.currentPage);
+    const embed = this.embedsService.getAddEmbed();
     embed
       .setTitle('Shadow ban settings')
-      .addFields({ name: 'Name', value: embedInfo.presetInfo.name })
-      .addFields({ name: 'User', value: embedInfo.user })
-      .addFields({ name: 'Channel', value: embedInfo.channel })
+      .addFields({ name: 'Name', value: pageInfo.pageData.name })
+      .addFields({ name: 'User', value: pageInfo.user })
+      .addFields({ name: 'Channel', value: pageInfo.channel })
       .addFields({
         name: ' ',
         value: `Page ${this.currentPage}/${this.totalPages}`,
@@ -69,16 +71,6 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     });
     await this.handleButtons(interaction, reply, embed);
     return Promise.resolve();
-  }
-
-  protected paginateArray(
-    array: ShadowBanEntity[],
-    pageSize: number,
-    pageNumber: number,
-  ): ShadowBanEntity {
-    const startIndex = (pageNumber - 1) * pageSize;
-    const pageArray = array.slice(startIndex, startIndex + pageSize)[0];
-    return pageArray;
   }
 
   protected createActionRow(
@@ -112,26 +104,17 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     reply: InteractionResponse<boolean>,
     embed: EmbedBuilder,
   ): Promise<void> {
-    this.createCollector(reply, interaction, embed);
-    return Promise.resolve();
-  }
-
-  private createCollector(
-    reply: InteractionResponse<boolean>,
-    interaction: ChatInputCommandInteraction<CacheType>,
-    embed: EmbedBuilder,
-  ) {
     const collector = this.getCollector(reply, interaction);
 
     collector.on('collect', async (btnInteraction) => {
       if (btnInteraction.customId === ButtonIds.list_prev) {
         this.currentPage -= 1;
-        await this.updateEmbed(embed, btnInteraction);
+        await this.updateEmbedOnBtnClick(embed, btnInteraction);
       }
 
       if (btnInteraction.customId === ButtonIds.list_next) {
         this.currentPage += 1;
-        await this.updateEmbed(embed, btnInteraction);
+        await this.updateEmbedOnBtnClick(embed, btnInteraction);
       }
 
       if (btnInteraction.customId === ButtonIds.list_delete) {
@@ -139,7 +122,7 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
       }
 
       collector.stop('btnClick');
-      this.createCollector(reply, interaction, embed);
+      await this.handleButtons(interaction, reply, embed);
     });
 
     collector.on('end', async (collected, reason) => {
@@ -147,17 +130,18 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
         await interaction.deleteReply();
       }
     });
+    return Promise.resolve();
   }
 
-  protected async updateEmbed(
+  protected async updateEmbedOnBtnClick(
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
-    const embedInfo = this.getEmbedInfo(this.currentPage);
+    const pageInfo = this.getPageInfo(this.currentPage);
     embed.setFields(
-      { name: 'Name', value: embedInfo.presetInfo.name },
-      { name: 'User', value: embedInfo.user },
-      { name: 'Channel', value: embedInfo.channel },
+      { name: 'Name', value: pageInfo.pageData.name },
+      { name: 'User', value: pageInfo.user },
+      { name: 'Channel', value: pageInfo.channel },
       { name: ' ', value: `Page ${this.currentPage}/${this.totalPages}` },
     );
     await btnInteraction.update({
@@ -166,23 +150,24 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     });
   }
 
-  private getEmbedInfo(pageNumber: number) {
-    const presetInfo = this.paginateArray(
-      this.presets,
-      this.itemsPerPage,
-      pageNumber,
-    );
+  private getPageInfo(pageNumber: number) {
+    const startIndex = (pageNumber - 1) * this.itemsPerPage;
+    const pageData = this.presets.slice(
+      startIndex,
+      startIndex + this.itemsPerPage,
+    )[0];
+
     const channel =
-      presetInfo.channelIds.length > 0
-        ? presetInfo.channelIds.map((item) => `<#${item}>`).join(' ')
+      pageData.channelIds.length > 0
+        ? pageData.channelIds.map((item) => `<#${item}>`).join(' ')
         : 'All channels';
     const user =
-      presetInfo.userIds.length > 0
-        ? presetInfo.userIds.map((userId) => `<@${userId}>`).join(' ')
+      pageData.userIds.length > 0
+        ? pageData.userIds.map((userId) => `<@${userId}>`).join(' ')
         : 'All users';
 
     return {
-      presetInfo,
+      pageData,
       channel,
       user,
     };
@@ -194,16 +179,16 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
     try {
-      const embedDeletedInfo = this.getEmbedInfo(this.currentPage);
+      const pageDeletedInfo = this.getPageInfo(this.currentPage);
       await this.shadowBanRepository.delete({
-        banId: embedDeletedInfo.presetInfo.banId,
+        banId: pageDeletedInfo.pageData.banId,
       });
 
       await this.actionLoggerService.shadowBanRemove({
-        name: embedDeletedInfo.presetInfo.name,
-        channelIds: embedDeletedInfo.presetInfo.channelIds,
-        bannedUsersIds: embedDeletedInfo.presetInfo.userIds,
-        guildId: embedDeletedInfo.presetInfo.guild.guildId,
+        name: pageDeletedInfo.pageData.name,
+        channelIds: pageDeletedInfo.pageData.channelIds,
+        bannedUsersIds: pageDeletedInfo.pageData.userIds,
+        guildId: pageDeletedInfo.pageData.guild.guildId,
         author: interaction.user,
       });
 
@@ -221,21 +206,23 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
         this.currentPage = 1;
       }
 
-      const shadowBan = await this.shadowBanRepository.find({
+      this.presets = await this.shadowBanRepository.find({
         where: { guild: { guildId: interaction.guildId } },
         relations: ['guild'],
       });
-
-      this.presets = shadowBan;
       this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
+
       if (this.totalPages === 0) {
-        const baseEmbed = this.embedsService.getAddEmbed();
-        baseEmbed.setTitle('No one user in shadow ban');
-        await btnInteraction.update({ embeds: [baseEmbed], components: [] });
+        await this.updateEmbedOnEmptyRecords({
+          reason: 'delete',
+          btnInteraction,
+          title: 'No one user in shadow ban',
+          embed: this.embedsService.getAddEmbed(),
+        });
         return Promise.resolve();
       }
 
-      await this.updateEmbed(embed, btnInteraction);
+      await this.updateEmbedOnBtnClick(embed, btnInteraction);
       return Promise.resolve();
     } catch (e) {
       this.logger.error(`Shadow ban delete ${interaction.guildId}: ${e}`);
