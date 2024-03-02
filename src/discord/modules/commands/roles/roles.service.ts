@@ -61,7 +61,55 @@ export class RolesService {
         content: `Something went wrong while adding role. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Set up logs ${interaction.guildId}: ${e}`);
+      this.logger.error(`Add role ${interaction.guildId}: ${e}`);
+    }
+  }
+
+  @SlashCommand({
+    name: 'remove_role',
+    description: 'Remove role from list for users for self-picking',
+    dmPermission: false,
+    defaultMemberPermissions: PermissionFlagsBits.Administrator,
+  })
+  public async onAddRemove(
+    @Context() [interaction]: SlashCommandContext,
+    @Opts() dto: RolesDto,
+  ) {
+    try {
+      const role = await this.rolesRepository.findOne({
+        where: {
+          guild: { guildId: interaction.guildId },
+          roleId: dto.role.id,
+        },
+      });
+
+      if (!role) {
+        await interaction.reply({
+          content: `Role **${dto.role.name}** hasn't been removed. Role **${dto.role.name}** doesn't exist in list`,
+          ephemeral: true,
+        });
+        return Promise.resolve();
+      }
+
+      await this.rolesRepository.delete({
+        guild: { guildId: interaction.guildId },
+        roleId: role.roleId,
+      });
+      await interaction.reply({
+        content: `Role **${dto.role.name}** has been successfully removed`,
+        ephemeral: true,
+      });
+      await this.actionLoggerService.roleRemove({
+        guildId: interaction.guildId,
+        role: dto.role,
+        author: interaction.user,
+      });
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while removing role. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Remove role ${interaction.guildId}: ${e}`);
     }
   }
 }

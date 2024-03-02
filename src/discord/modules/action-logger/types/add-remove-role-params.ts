@@ -1,6 +1,6 @@
 import { Role, User } from 'discord.js';
 
-export type AddRoleParams = {
+export type AddRemoveRoleParams = {
   guildId: string;
   author: User;
   role: Role;
