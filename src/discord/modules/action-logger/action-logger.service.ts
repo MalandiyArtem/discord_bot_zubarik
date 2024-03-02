@@ -5,6 +5,7 @@ import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../embeds/embeds.service';
 import { ShadowBanLogParams } from './types/shadow-ban-add-params';
+import { AddRoleParams } from './types/add-role-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -82,7 +83,7 @@ export class ActionLoggerService {
 
       const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
-        .getAddEmbed()
+        .getRemoveEmbed()
         .setTitle('Shadow ban list has been updated')
         .setThumbnail(options.author?.avatarURL() || null)
         .addFields({
@@ -96,6 +97,24 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Shadow Ban Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAdd(options: AddRoleParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Add role to list')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has added <@&${options.role.id}> role to available list`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Add ${options.guildId}: ${e}`);
     }
   }
 
