@@ -5,7 +5,11 @@ import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../embeds/embeds.service';
 import { ShadowBanLogParams } from './types/shadow-ban-add-params';
-import { AddRemoveRoleParams } from './types/add-remove-role-params';
+import {
+  RoleAddParams,
+  RoleRemoveAllParams,
+  RoleRemoveParams,
+} from './types/role-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -100,7 +104,7 @@ export class ActionLoggerService {
     }
   }
 
-  public async roleAdd(options: AddRemoveRoleParams) {
+  public async roleAdd(options: RoleAddParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
@@ -118,7 +122,7 @@ export class ActionLoggerService {
     }
   }
 
-  public async roleRemove(options: AddRemoveRoleParams) {
+  public async roleRemove(options: RoleRemoveParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
@@ -133,6 +137,24 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Role Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAllRemove(options: RoleRemoveAllParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Remove all roles from list')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has removed all roles from list`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Remove All ${options.guildId}: ${e}`);
     }
   }
 

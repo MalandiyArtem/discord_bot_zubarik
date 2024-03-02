@@ -18,7 +18,7 @@ export class RolesService {
   ) {}
 
   @SlashCommand({
-    name: 'add_role',
+    name: 'add-role',
     description: 'Add role which will be available for users for self-picking',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -66,12 +66,12 @@ export class RolesService {
   }
 
   @SlashCommand({
-    name: 'remove_role',
+    name: 'remove-role',
     description: 'Remove role from list for users for self-picking',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
   })
-  public async onAddRemove(
+  public async onRemoveRole(
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: RolesDto,
   ) {
@@ -110,6 +110,52 @@ export class RolesService {
         ephemeral: true,
       });
       this.logger.error(`Remove role ${interaction.guildId}: ${e}`);
+    }
+  }
+
+  @SlashCommand({
+    name: 'remove-all-roles',
+    description: 'Remove all roles from list for users for self-picking',
+    dmPermission: false,
+    defaultMemberPermissions: PermissionFlagsBits.Administrator,
+  })
+  public async onRemoveAllRole(@Context() [interaction]: SlashCommandContext) {
+    try {
+      const roles = await this.rolesRepository.find({
+        where: {
+          guild: { guildId: interaction.guildId },
+        },
+      });
+
+      if (roles.length === 0) {
+        await interaction.reply({
+          content: 'Role list is empty',
+          ephemeral: true,
+        });
+        return Promise.resolve();
+      }
+
+      for (const role of roles) {
+        await this.rolesRepository.delete({
+          guild: { guildId: interaction.guildId },
+          roleId: role.roleId,
+        });
+      }
+
+      await interaction.reply({
+        content: 'All roles have been successfully removed',
+        ephemeral: true,
+      });
+      await this.actionLoggerService.roleAllRemove({
+        guildId: interaction.guildId,
+        author: interaction.user,
+      });
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while removing all roles. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Remove all roles ${interaction.guildId}: ${e}`);
     }
   }
 }
