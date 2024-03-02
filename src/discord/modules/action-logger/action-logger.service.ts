@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { EmbedsService } from '../embeds/embeds.service';
 import { ShadowBanLogParams } from './types/shadow-ban-add-params';
 import {
+  AttachRoleParams,
   RoleAddParams,
   RoleRemoveAllParams,
   RoleRemoveParams,
@@ -155,6 +156,42 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Role Remove All ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAttach(options: AttachRoleParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('User added role')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has added <@&${options.role.id}> role`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Attach ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleDetach(options: AttachRoleParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('User removed role')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has removed <@&${options.role.id}> role`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Detach ${options.guildId}: ${e}`);
     }
   }
 

@@ -7,6 +7,7 @@ export type RoleAddParams = {
 };
 
 export type RoleRemoveParams = RoleAddParams;
+export type AttachRoleParams = RoleAddParams;
 
 export type RoleRemoveAllParams = {
   guildId: string;

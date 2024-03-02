@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, Opts, SlashCommand, SlashCommandContext } from 'necord';
-import { PermissionFlagsBits } from 'discord.js';
+import {
+  CacheType,
+  ChatInputCommandInteraction,
+  GuildMember,
+  PermissionFlagsBits,
+} from 'discord.js';
 import { RolesDto } from './dto/roles.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -156,6 +161,115 @@ export class RolesService {
         ephemeral: true,
       });
       this.logger.error(`Remove all roles ${interaction.guildId}: ${e}`);
+    }
+  }
+
+  @SlashCommand({
+    name: 'role',
+    description: 'Get or get rid of the role',
+    dmPermission: false,
+  })
+  public async onRole(
+    @Context() [interaction]: SlashCommandContext,
+    @Opts() dto: RolesDto,
+  ) {
+    try {
+      const user = interaction.guild.members.cache.get(interaction.user.id);
+      if (user.roles.cache.has(dto.role.id)) {
+        await this.detachRole(interaction, dto, user);
+        return Promise.resolve();
+      }
+      await this.attachRole(interaction, dto, user);
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Attach or detach role ${interaction.guildId}: ${e}`);
+    }
+  }
+
+  private async attachRole(
+    interaction: ChatInputCommandInteraction<CacheType>,
+    roleDto: RolesDto,
+    user: GuildMember,
+  ) {
+    try {
+      const role = await this.rolesRepository.findOne({
+        where: {
+          guild: { guildId: interaction.guildId },
+          roleId: roleDto.role.id,
+        },
+      });
+
+      if (!role) {
+        await interaction.reply({
+          content: `The role **${roleDto.role.name}** can\'t be added. Please use **/role_list** to see all available roles to pick`,
+          ephemeral: true,
+        });
+        return Promise.resolve();
+      }
+
+      const roleInfo = interaction.guild.roles.cache.get(roleDto.role.id);
+      await user.roles.add(role.roleId);
+      await interaction.reply({
+        content: `The role **${roleInfo.name}** has been added successfully.`,
+        ephemeral: true,
+      });
+      await this.actionLoggerService.roleAttach({
+        guildId: interaction.guildId,
+        author: interaction.user,
+        role: roleDto.role,
+      });
+    } catch (e) {
+      this.logger.error(`Attach role ${interaction.guildId}: ${e}`);
+      await interaction.reply({
+        content:
+          "An error occurred while adding the role. If it is role with admin permissions, bot can't assign it",
+        ephemeral: true,
+      });
+    }
+  }
+
+  private async detachRole(
+    interaction: ChatInputCommandInteraction<CacheType>,
+    roleDto: RolesDto,
+    user: GuildMember,
+  ) {
+    try {
+      const role = await this.rolesRepository.findOne({
+        where: {
+          guild: { guildId: interaction.guildId },
+          roleId: roleDto.role.id,
+        },
+      });
+
+      if (!role) {
+        await interaction.reply({
+          content: `The role **${roleDto.role.name}** can\'t be removed. Please use **/role_list** to see all available roles to remove`,
+          ephemeral: true,
+        });
+        return Promise.resolve();
+      }
+
+      const roleInfo = interaction.guild.roles.cache.get(roleDto.role.id);
+      await user.roles.remove(role.roleId);
+      await interaction.reply({
+        content: `The role **${roleInfo.name}** has been removed successfully.`,
+        ephemeral: true,
+      });
+      await this.actionLoggerService.roleDetach({
+        guildId: interaction.guildId,
+        author: interaction.user,
+        role: roleDto.role,
+      });
+    } catch (e) {
+      this.logger.error(`Attach role ${interaction.guildId}: ${e}`);
+      await interaction.reply({
+        content:
+          "An error occurred while adding the role. If it is role with admin permissions, bot can't assign it",
+        ephemeral: true,
+      });
     }
   }
 }
