@@ -9,6 +9,7 @@ import { GuildService } from './services/guild.service';
 import { LogsChannelModule } from './modules/commands/logs-channel/logs-channel.module';
 import { ShadowBanModule } from './modules/commands/shadow-ban/shadow-ban.module';
 import { MessageModule } from './modules/message/message.module';
+import { RolesModule } from './modules/commands/roles/roles.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MessageModule } from './modules/message/message.module';
     LogsChannelModule,
     ShadowBanModule,
     MessageModule,
+    RolesModule,
   ],
   providers: [DiscordService, GuildService],
 })
