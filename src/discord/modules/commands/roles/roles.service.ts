@@ -11,6 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolesEntity } from './entities/roles.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { ModuleRef } from '@nestjs/core';
+import { RolePaginationService } from '../../pagination/role/role-pagination.service';
 
 @Injectable()
 export class RolesService {
@@ -20,6 +22,7 @@ export class RolesService {
     @InjectRepository(RolesEntity)
     private readonly rolesRepository: Repository<RolesEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @SlashCommand({
@@ -187,6 +190,18 @@ export class RolesService {
       });
       this.logger.error(`Attach or detach role ${interaction.guildId}: ${e}`);
     }
+  }
+
+  @SlashCommand({
+    name: 'role-list',
+    description: 'Display list of available roles',
+    dmPermission: false,
+  })
+  public async onRoleList(@Context() [interaction]: SlashCommandContext) {
+    const roleListPaginationService = await this.moduleRef.create(
+      RolePaginationService,
+    );
+    await roleListPaginationService.showList(interaction);
   }
 
   private async attachRole(
