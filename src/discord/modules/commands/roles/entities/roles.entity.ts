@@ -9,8 +9,8 @@ import { GuildsEntity } from '../../../../entities/guilds.entity';
 
 @Entity({ name: 'roles' })
 export class RolesEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   roleId: string;
