@@ -5,6 +5,12 @@ import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../embeds/embeds.service';
 import { ShadowBanLogParams } from './types/shadow-ban-add-params';
+import {
+  AttachRoleParams,
+  RoleAddParams,
+  RoleRemoveAllParams,
+  RoleRemoveParams,
+} from './types/role-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -82,7 +88,7 @@ export class ActionLoggerService {
 
       const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
-        .getAddEmbed()
+        .getRemoveEmbed()
         .setTitle('Shadow ban list has been updated')
         .setThumbnail(options.author?.avatarURL() || null)
         .addFields({
@@ -96,6 +102,96 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Shadow Ban Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAdd(options: RoleAddParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Add role to list')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has added <@&${options.role.id}> role to list`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleRemove(options: RoleRemoveParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Remove role from list')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has removed <@&${options.role.id}> role from list`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAllRemove(options: RoleRemoveAllParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Remove all roles from list')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has removed all roles from list`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Remove All ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleAttach(options: AttachRoleParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('User added role')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has added <@&${options.role.id}> role`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Attach ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async roleDetach(options: AttachRoleParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('User removed role')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `<@${options.author?.id}> has removed <@&${options.role.id}> role`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Role Detach ${options.guildId}: ${e}`);
     }
   }
 
