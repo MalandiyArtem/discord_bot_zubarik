@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 import { ShadowBanEntity } from '../modules/commands/shadow-ban/entities/shadow-ban.entity';
 import { RolesEntity } from '../modules/commands/roles/entities/roles.entity';
+import { ReactionsEntity } from '../modules/commands/reactions/entities/reactions.entity';
 
 @Entity({ name: 'guilds' })
 export class GuildsEntity {
@@ -21,4 +22,7 @@ export class GuildsEntity {
 
   @OneToMany(() => RolesEntity, (roles) => roles.guild)
   roleIds: RolesEntity[];
+
+  @OneToMany(() => ReactionsEntity, (reactions) => reactions.guild)
+  reactions: ReactionsEntity[];
 }
