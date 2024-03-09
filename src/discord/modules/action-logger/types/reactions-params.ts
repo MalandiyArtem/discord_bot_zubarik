@@ -1,6 +1,6 @@
 import { User } from 'discord.js';
 
-export type ReactionsAddParams = {
+export type ReactionsLogParams = {
   guildId: string;
   name: string;
   channelIds: string[];

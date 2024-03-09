@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReactionsEntity } from './entities/reactions.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { ReactionsPaginationService } from '../../pagination/reactions/reactions-pagination.service';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class ReactionsService {
@@ -17,6 +19,7 @@ export class ReactionsService {
     @InjectRepository(ReactionsEntity)
     private readonly reactionsEntityRepository: Repository<ReactionsEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @SlashCommand({
@@ -82,6 +85,19 @@ export class ReactionsService {
       });
       this.logger.error(`Reactions add ${interaction.guildId}: ${e}`);
     }
+  }
+
+  @SlashCommand({
+    name: 'reactions-list',
+    description: 'Show all reaction list',
+    dmPermission: false,
+    defaultMemberPermissions: PermissionFlagsBits.Administrator,
+  })
+  public async onReactionsList(@Context() [interaction]: SlashCommandContext) {
+    const reactionsPaginationService = await this.moduleRef.create(
+      ReactionsPaginationService,
+    );
+    await reactionsPaginationService.showList(interaction);
   }
 
   private async isNameTaken(name: string) {

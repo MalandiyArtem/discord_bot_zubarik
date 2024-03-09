@@ -11,7 +11,7 @@ import {
   RoleRemoveAllParams,
   RoleRemoveParams,
 } from './types/role-params';
-import { ReactionsAddParams } from './types/reactions-params';
+import { ReactionsLogParams } from './types/reactions-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -196,7 +196,7 @@ export class ActionLoggerService {
     }
   }
 
-  public async reactionsAdd(options: ReactionsAddParams) {
+  public async reactionsAdd(options: ReactionsLogParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
 
@@ -228,6 +228,41 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Reactions Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async reactionsRemove(options: ReactionsLogParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      const channels =
+        options.channelIds.length > 0
+          ? options.channelIds.map((item) => `<#${item}>`).join(' ')
+          : 'All channels';
+      const users =
+        options.userIds.length > 0
+          ? options.userIds.map((userId) => `<@${userId}>`).join(' ')
+          : 'All users';
+      const emojis = options.emojis
+        .map((emojiId) => `${this.client.emojis.cache.get(emojiId) || emojiId}`)
+        .join(' ');
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Reaction have been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Reaction have been removed by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Name', value: options.name })
+        .addFields({ name: 'Emoji', value: emojis })
+        .addFields({ name: 'Channel', value: channels })
+        .addFields({ name: 'User', value: users });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Reaction Remove ${options.guildId}: ${e}`);
     }
   }
 
