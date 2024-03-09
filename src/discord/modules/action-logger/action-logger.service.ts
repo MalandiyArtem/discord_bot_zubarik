@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Client, TextChannel, User } from 'discord.js';
+import { Client, Message, TextChannel, User } from 'discord.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
@@ -263,6 +263,44 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Reaction Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async messageDelete(message: Message) {
+    try {
+      const embeds = message.embeds;
+
+      console.log(message);
+
+      if (embeds.length > 0) {
+        return Promise.resolve();
+      }
+
+      const author = message.author;
+      const deletedMessage = message.content;
+      const deletedAttachments = message.attachments;
+      const logChannel = await this.getLogChannel(message.guild.id);
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Message has been deleted')
+        .setThumbnail(author?.avatarURL() || null)
+        .setDescription(deletedMessage || ' ')
+        .addFields({
+          name: ' ',
+          value: `Message has been deleted by <@${author?.id}>`,
+        })
+        .addFields({ name: ' ', value: `Channel <#${message.channelId}>` });
+
+      await logChannel.send({ embeds: [embed] });
+
+      if (deletedAttachments) {
+        for (const [, attachment] of deletedAttachments) {
+          await logChannel.send({ content: attachment.url });
+        }
+      }
+    } catch (e) {
+      this.logger.error(`Message delete ${message.guild.id}: ${e}`);
     }
   }
 
