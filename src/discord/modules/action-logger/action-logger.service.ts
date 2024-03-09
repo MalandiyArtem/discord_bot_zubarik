@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Client, Message, TextChannel, User } from 'discord.js';
+import { Client, Message, PartialMessage, TextChannel, User } from 'discord.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GuildsEntity } from '../../entities/guilds.entity';
 import { Repository } from 'typeorm';
@@ -270,8 +270,6 @@ export class ActionLoggerService {
     try {
       const embeds = message.embeds;
 
-      console.log(message);
-
       if (embeds.length > 0) {
         return Promise.resolve();
       }
@@ -301,6 +299,68 @@ export class ActionLoggerService {
       }
     } catch (e) {
       this.logger.error(`Message delete ${message.guild.id}: ${e}`);
+    }
+  }
+
+  public async messageUpdate(
+    oldMessage: Message | PartialMessage,
+    newMessage: Message | PartialMessage,
+  ) {
+    try {
+      if (oldMessage.author?.bot) return Promise.resolve();
+
+      const oldAttachments = oldMessage.attachments.map(
+        (attachment) => attachment.url,
+      );
+      const newAttachments = newMessage.attachments.map(
+        (attachment) => attachment.url,
+      );
+
+      const embeds = oldMessage.embeds;
+      if (
+        (oldAttachments.length === newAttachments.length &&
+          oldMessage.content === newMessage.content) ||
+        embeds.length > 0
+      ) {
+        return Promise.resolve();
+      }
+
+      const author = oldMessage.author;
+      const logChannel = await this.getLogChannel(oldMessage.guild.id);
+      const authorEmbed = this.embedsService
+        .getUpdateEmbed(true)
+        .setTitle('Message has been edited')
+        .setThumbnail(author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Message has been edited by <@${author?.id}>`,
+          inline: true,
+        })
+        .addFields({ name: ' ', value: `Channel <#${oldMessage.channelId}>` });
+
+      const oldMessageEmbed = this.embedsService
+        .getUpdateEmbed(true)
+        .setTitle('Old message')
+        .setDescription(`${oldMessage || ' '} \n ${oldAttachments.join('\n')}`);
+
+      const newMessageEmbed = this.embedsService
+        .getUpdateEmbed()
+        .setTitle('New message')
+        .setDescription(`${newMessage || ' '} \n ${newAttachments.join('\n')}`);
+
+      await logChannel.send({
+        embeds: [authorEmbed],
+      });
+
+      await logChannel.send({
+        embeds: [oldMessageEmbed],
+      });
+
+      await logChannel.send({
+        embeds: [newMessageEmbed],
+      });
+    } catch (e) {
+      this.logger.error(`Message update ${oldMessage.guild.id}: ${e}`);
     }
   }
 

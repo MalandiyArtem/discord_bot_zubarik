@@ -26,4 +26,11 @@ export class MessageService {
   ) {
     this.actionLoggerService.messageDelete(message);
   }
+
+  @On('messageUpdate')
+  public async onMessageUpdate(
+    @Context() [oldMessage, newMessage]: ContextOf<'messageUpdate'>,
+  ) {
+    this.actionLoggerService.messageUpdate(oldMessage, newMessage);
+  }
 }

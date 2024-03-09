@@ -11,7 +11,13 @@ export class EmbedsService {
       .setFooter({ text: 'Big Brother is always watching you' });
   }
 
-  public getUpdateEmbed() {
+  public getUpdateEmbed(noFooter: boolean = false) {
+    if (noFooter) {
+      return new EmbedBuilder()
+        .setColor('Yellow')
+        .setURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    }
+
     return new EmbedBuilder()
       .setColor('Yellow')
       .setURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
