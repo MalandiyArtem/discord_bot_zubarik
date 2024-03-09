@@ -6,10 +6,11 @@ import { EmbedsModule } from '../embeds/embeds.module';
 import { ActionLoggerModule } from '../action-logger/action-logger.module';
 import { RolePaginationService } from './role/role-pagination.service';
 import { RolesEntity } from '../commands/roles/entities/roles.entity';
+import { ReactionsEntity } from '../commands/reactions/entities/reactions.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ShadowBanEntity, RolesEntity]),
+    TypeOrmModule.forFeature([ShadowBanEntity, RolesEntity, ReactionsEntity]),
     EmbedsModule,
     ActionLoggerModule,
   ],

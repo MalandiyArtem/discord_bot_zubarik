@@ -4,6 +4,8 @@ import {
   ChannelType,
   ChatInputCommandInteraction,
 } from 'discord.js';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const emojiRegex = require('emoji-regex');
 
 @Injectable()
 export class UtilsService {
@@ -53,6 +55,32 @@ export class UtilsService {
     return channelId;
   }
 
+  public getEmojiIds(
+    emoji: string,
+    interaction: ChatInputCommandInteraction<CacheType>,
+  ) {
+    const emojiArray = emoji.split(' ');
+    const emojiIds = emojiArray
+      .map((emoji) => {
+        if (this.isCustomEmoji(emoji)) {
+          const emojiId = emoji.split(':')[2].slice(0, -1);
+
+          if (interaction.guild?.emojis.cache.has(emojiId)) {
+            return emojiId;
+          }
+        }
+
+        if (this.isUnicodeEmoji(emoji)) {
+          return emoji;
+        }
+
+        return null;
+      })
+      .filter((id) => id !== null);
+
+    return emojiIds;
+  }
+
   private isChannel(channel: string): boolean {
     const regex = /^<#([0-9]+)>$/i;
     return regex.test(channel);
@@ -61,5 +89,20 @@ export class UtilsService {
   private isUser(user: string): boolean {
     const regex = /^<@([0-9]+)>$/i;
     return regex.test(user);
+  }
+
+  private isCustomEmoji(emoji: string): boolean {
+    const regex = /^<:[^:]{2,}:([0-9]+)>$/i;
+    return regex.test(emoji);
+  }
+
+  private isUnicodeEmoji(emoji: string): boolean {
+    const regex = emojiRegex();
+    const matches = emoji.match(regex);
+    const regionalIndicatorSymbols = /^[\u{1F1E6}-\u{1F1FF}]{1}$/u;
+    return (
+      (matches !== null && matches.length === 1 && matches[0] === emoji) ||
+      regionalIndicatorSymbols.test(emoji)
+    );
   }
 }
