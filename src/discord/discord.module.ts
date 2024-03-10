@@ -11,6 +11,7 @@ import { ShadowBanModule } from './modules/commands/shadow-ban/shadow-ban.module
 import { MessageModule } from './modules/message/message.module';
 import { RolesModule } from './modules/commands/roles/roles.module';
 import { ReactionsModule } from './modules/commands/reactions/reactions.module';
+import { GifModule } from './modules/commands/gif/gif.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReactionsModule } from './modules/commands/reactions/reactions.module';
     MessageModule,
     RolesModule,
     ReactionsModule,
+    GifModule,
   ],
   providers: [DiscordService, GuildService],
 })
