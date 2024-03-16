@@ -14,8 +14,10 @@ import { ShadowBanEntity } from '../../commands/shadow-ban/entities/shadow-ban.e
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../../embeds/embeds.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_KEYS } from '../../../../constants/cache';
 
 @Injectable()
 export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanEntity> {
@@ -29,6 +31,7 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
     private readonly embedsService: EmbedsService,
     private readonly actionLoggerService: ActionLoggerService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super(1);
   }
@@ -184,6 +187,11 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
         banId: pageDeletedInfo.pageData.banId,
       });
 
+      await this.clearShadowBanCache(
+        pageDeletedInfo.pageData.userIds,
+        interaction.guildId,
+      );
+
       await this.actionLoggerService.shadowBanRemove({
         name: pageDeletedInfo.pageData.name,
         channelIds: pageDeletedInfo.pageData.channelIds,
@@ -226,6 +234,16 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
       return Promise.resolve();
     } catch (e) {
       this.logger.error(`Shadow ban delete ${interaction.guildId}: ${e}`);
+    }
+  }
+
+  private async clearShadowBanCache(userIds: string[], guildId: string) {
+    for (const userId of userIds) {
+      await this.cacheManager.del(
+        CACHE_KEYS.SHADOW_BAN.key
+          .replace('{guildId}', guildId)
+          .replace('{userId}', userId),
+      );
     }
   }
 }
