@@ -12,6 +12,7 @@ import { MessageModule } from './modules/message/message.module';
 import { RolesModule } from './modules/commands/roles/roles.module';
 import { ReactionsModule } from './modules/commands/reactions/reactions.module';
 import { GifModule } from './modules/commands/gif/gif.module';
+import { ScheduleModule } from './modules/commands/schedule/schedule.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { GifModule } from './modules/commands/gif/gif.module';
     RolesModule,
     ReactionsModule,
     GifModule,
+    ScheduleModule,
   ],
   providers: [DiscordService, GuildService],
 })
