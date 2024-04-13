@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Context, Opts, SlashCommand, SlashCommandContext } from 'necord';
 import { LogsChannelDto } from './dto/logs-channel.dto';
 import { Client, PermissionFlagsBits } from 'discord.js';
@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { GuildsEntity } from '../../../entities/guilds.entity';
 import { Repository } from 'typeorm';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_KEYS } from '../../../../constants/cache';
 
 @Injectable()
 export class LogsChannelService {
@@ -16,6 +18,7 @@ export class LogsChannelService {
     @InjectRepository(GuildsEntity)
     private readonly guildRepository: Repository<GuildsEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @SlashCommand({
@@ -28,6 +31,13 @@ export class LogsChannelService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: LogsChannelDto,
   ) {
+    await this.cacheManager.del(
+      CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace(
+        '{guildId}',
+        interaction.guildId,
+      ),
+    );
+
     const guild = await this.guildRepository.findOne({
       where: { guildId: interaction.guildId },
     });

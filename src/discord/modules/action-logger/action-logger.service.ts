@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Client, Message, PartialMessage, TextChannel, User } from 'discord.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GuildsEntity } from '../../entities/guilds.entity';
@@ -12,6 +12,8 @@ import {
   RoleRemoveParams,
 } from './types/role-params';
 import { ReactionsLogParams } from './types/reactions-params';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_KEYS } from '../../../constants/cache';
 
 @Injectable()
 export class ActionLoggerService {
@@ -22,11 +24,15 @@ export class ActionLoggerService {
     @InjectRepository(GuildsEntity)
     private readonly guildRepository: Repository<GuildsEntity>,
     private readonly embedsService: EmbedsService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   public async addLogChannel(guildId: string, author: User) {
     try {
       const logChannel = await this.getLogChannel(guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getAddEmbed()
         .setTitle('Log channel updated')
@@ -48,6 +54,10 @@ export class ActionLoggerService {
 
   public async shadowBanAdd(options: ShadowBanLogParams) {
     try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const channels =
         options.channelIds.length > 0
           ? options.channelIds.map((item) => `<#${item}>`).join(' ')
@@ -57,7 +67,6 @@ export class ActionLoggerService {
           ? options.bannedUsersIds.map((userId) => `<@${userId}>`).join(' ')
           : 'All users';
 
-      const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
         .getAddEmbed()
         .setTitle('Shadow ban list has been updated')
@@ -78,6 +87,10 @@ export class ActionLoggerService {
 
   public async shadowBanRemove(options: ShadowBanLogParams) {
     try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const channels =
         options.channelIds.length > 0
           ? options.channelIds.map((item) => `<#${item}>`).join(' ')
@@ -87,7 +100,6 @@ export class ActionLoggerService {
           ? options.bannedUsersIds.map((userId) => `<@${userId}>`).join(' ')
           : 'All users';
 
-      const logChannel = await this.getLogChannel(options.guildId);
       const embed = this.embedsService
         .getRemoveEmbed()
         .setTitle('Shadow ban list has been updated')
@@ -109,6 +121,9 @@ export class ActionLoggerService {
   public async roleAdd(options: RoleAddParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getAddEmbed()
         .setTitle('Add role to list')
@@ -127,6 +142,9 @@ export class ActionLoggerService {
   public async roleRemove(options: RoleRemoveParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getRemoveEmbed()
         .setTitle('Remove role from list')
@@ -145,6 +163,9 @@ export class ActionLoggerService {
   public async roleAllRemove(options: RoleRemoveAllParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getRemoveEmbed()
         .setTitle('Remove all roles from list')
@@ -163,6 +184,9 @@ export class ActionLoggerService {
   public async roleAttach(options: AttachRoleParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getAddEmbed()
         .setTitle('User added role')
@@ -181,6 +205,9 @@ export class ActionLoggerService {
   public async roleDetach(options: AttachRoleParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
       const embed = this.embedsService
         .getRemoveEmbed()
         .setTitle('User removed role')
@@ -199,6 +226,8 @@ export class ActionLoggerService {
   public async reactionsAdd(options: ReactionsLogParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
 
       const channels =
         options.channelIds.length > 0
@@ -235,6 +264,8 @@ export class ActionLoggerService {
     try {
       const logChannel = await this.getLogChannel(options.guildId);
 
+      if (!logChannel) return Promise.resolve();
+
       const channels =
         options.channelIds.length > 0
           ? options.channelIds.map((item) => `<#${item}>`).join(' ')
@@ -268,6 +299,10 @@ export class ActionLoggerService {
 
   public async messageDelete(message: Message) {
     try {
+      const logChannel = await this.getLogChannel(message.guild.id);
+
+      if (!logChannel) return Promise.resolve();
+
       const embeds = message.embeds;
 
       if (embeds.length > 0) {
@@ -277,7 +312,6 @@ export class ActionLoggerService {
       const author = message.author;
       const deletedMessage = message.content;
       const deletedAttachments = message.attachments;
-      const logChannel = await this.getLogChannel(message.guild.id);
 
       const embed = this.embedsService
         .getRemoveEmbed()
@@ -308,6 +342,9 @@ export class ActionLoggerService {
   ) {
     try {
       if (oldMessage.author?.bot) return Promise.resolve();
+      const logChannel = await this.getLogChannel(oldMessage.guild.id);
+
+      if (!logChannel) return Promise.resolve();
 
       const oldAttachments = oldMessage.attachments.map(
         (attachment) => attachment.url,
@@ -326,7 +363,7 @@ export class ActionLoggerService {
       }
 
       const author = oldMessage.author;
-      const logChannel = await this.getLogChannel(oldMessage.guild.id);
+
       const authorEmbed = this.embedsService
         .getUpdateEmbed(true)
         .setTitle('Message has been edited')
@@ -366,9 +403,26 @@ export class ActionLoggerService {
 
   private async getLogChannel(guildId: string) {
     try {
+      const cacheLogChannel = await this.cacheManager.get<string>(
+        CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace('{guildId}', guildId),
+      );
+
+      if (cacheLogChannel) {
+        return this.client.channels.cache.get(cacheLogChannel) as TextChannel;
+      }
+
       const guild = await this.guildRepository.findOne({
         where: { guildId: guildId },
       });
+
+      if (!guild.logChannelId) return;
+
+      await this.cacheManager.set(
+        CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace('{guildId}', guild.guildId),
+        guild.logChannelId,
+        CACHE_KEYS.GUILD_LOG_CHANNEL.ttl,
+      );
+
       return this.client.channels.cache.get(guild.logChannelId) as TextChannel;
     } catch (e) {
       this.logger.error(`Get log channel ${guildId}: ${e}`);
