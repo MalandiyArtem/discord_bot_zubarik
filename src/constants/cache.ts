@@ -7,4 +7,8 @@ export const CACHE_KEYS = {
     key: '{guildId}_{userId}_shadow_ban',
     ttl: 10800000, // 3 hours
   },
+  REACTIONS: {
+    key: '{guildId}_reactions',
+    ttl: 10800000, // 3 hours
+  },
 };
