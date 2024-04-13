@@ -33,8 +33,12 @@ export class RolePaginationService extends BasePaginationHandler<string> {
   public async showList(
     interaction: ChatInputCommandInteraction<CacheType>,
   ): Promise<void> {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     const roles = await this.rolesEntityRepository.find({
-      where: { guild: { guildId: interaction.guildId } },
+      where: { guild: { guildId: guildId } },
     });
 
     this.availableRoles = roles.map((role) => role.roleId);

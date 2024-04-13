@@ -41,8 +41,12 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
   public async showList(
     interaction: ChatInputCommandInteraction<CacheType>,
   ): Promise<void> {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     this.presets = await this.reactionsEntityRepository.find({
-      where: { guild: { guildId: interaction.guildId } },
+      where: { guild: { guildId: guildId } },
       relations: ['guild'],
     });
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
@@ -193,16 +197,20 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const pageDeletedInfo = this.getPageInfo(this.currentPage);
       await this.reactionsEntityRepository.delete({
         id: pageDeletedInfo.pageData.id,
       });
 
-      await this.clearReactionsCache(interaction.guildId);
+      await this.clearReactionsCache(guildId);
 
       await this.actionLoggerService.reactionsRemove({
-        guildId: interaction.guildId,
+        guildId: guildId,
         name: pageDeletedInfo.pageData.name,
         emojis: pageDeletedInfo.pageData.emojis,
         userIds: pageDeletedInfo.pageData.userIds,
@@ -225,7 +233,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       }
 
       this.presets = await this.reactionsEntityRepository.find({
-        where: { guild: { guildId: interaction.guildId } },
+        where: { guild: { guildId: guildId } },
         relations: ['guild'],
       });
       this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);

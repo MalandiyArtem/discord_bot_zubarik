@@ -35,9 +35,13 @@ export class RolesService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: RolesDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const roles = await this.rolesRepository.find({
-        where: { guild: { guildId: interaction.guildId } },
+        where: { guild: { guildId: guildId } },
       });
 
       const isRoleExist =
@@ -53,14 +57,14 @@ export class RolesService {
 
       await this.rolesRepository.save({
         roleId: dto.role.id,
-        guild: { guildId: interaction.guildId },
+        guild: { guildId: guildId },
       });
       await interaction.reply({
         content: `Role **${dto.role.name}** has been successfully added`,
         ephemeral: true,
       });
       await this.actionLoggerService.roleAdd({
-        guildId: interaction.guildId,
+        guildId: guildId,
         role: dto.role,
         author: interaction.user,
       });
@@ -69,7 +73,7 @@ export class RolesService {
         content: `Something went wrong while adding role. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Add role ${interaction.guildId}: ${e}`);
+      this.logger.error(`Add role ${guildId}: ${e}`);
     }
   }
 
@@ -83,10 +87,14 @@ export class RolesService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: RolesDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const role = await this.rolesRepository.findOne({
         where: {
-          guild: { guildId: interaction.guildId },
+          guild: { guildId: guildId },
           roleId: dto.role.id,
         },
       });
@@ -100,7 +108,7 @@ export class RolesService {
       }
 
       await this.rolesRepository.delete({
-        guild: { guildId: interaction.guildId },
+        guild: { guildId: guildId },
         roleId: role.roleId,
       });
       await interaction.reply({
@@ -108,7 +116,7 @@ export class RolesService {
         ephemeral: true,
       });
       await this.actionLoggerService.roleRemove({
-        guildId: interaction.guildId,
+        guildId: guildId,
         role: dto.role,
         author: interaction.user,
       });
@@ -117,7 +125,7 @@ export class RolesService {
         content: `Something went wrong while removing role. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Remove role ${interaction.guildId}: ${e}`);
+      this.logger.error(`Remove role ${guildId}: ${e}`);
     }
   }
 
@@ -128,10 +136,14 @@ export class RolesService {
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
   })
   public async onRemoveAllRole(@Context() [interaction]: SlashCommandContext) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const roles = await this.rolesRepository.find({
         where: {
-          guild: { guildId: interaction.guildId },
+          guild: { guildId: guildId },
         },
       });
 
@@ -145,7 +157,7 @@ export class RolesService {
 
       for (const role of roles) {
         await this.rolesRepository.delete({
-          guild: { guildId: interaction.guildId },
+          guild: { guildId: guildId },
           roleId: role.roleId,
         });
       }
@@ -155,7 +167,7 @@ export class RolesService {
         ephemeral: true,
       });
       await this.actionLoggerService.roleAllRemove({
-        guildId: interaction.guildId,
+        guildId: guildId,
         author: interaction.user,
       });
     } catch (e) {
@@ -163,7 +175,7 @@ export class RolesService {
         content: `Something went wrong while removing all roles. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Remove all roles ${interaction.guildId}: ${e}`);
+      this.logger.error(`Remove all roles ${guildId}: ${e}`);
     }
   }
 
@@ -176,19 +188,26 @@ export class RolesService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: RolesDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
-      const user = interaction.guild.members.cache.get(interaction.user.id);
-      if (user.roles.cache.has(dto.role.id)) {
+      const user = interaction.guild?.members.cache.get(interaction.user.id);
+      if (user?.roles.cache.has(dto.role.id)) {
         await this.detachRole(interaction, dto, user);
         return Promise.resolve();
       }
-      await this.attachRole(interaction, dto, user);
+
+      if (user) {
+        await this.attachRole(interaction, dto, user);
+      }
     } catch (e) {
       await interaction.reply({
         content: `Something went wrong. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Attach or detach role ${interaction.guildId}: ${e}`);
+      this.logger.error(`Attach or detach role ${guildId}: ${e}`);
     }
   }
 
@@ -209,10 +228,14 @@ export class RolesService {
     roleDto: RolesDto,
     user: GuildMember,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const role = await this.rolesRepository.findOne({
         where: {
-          guild: { guildId: interaction.guildId },
+          guild: { guildId: guildId },
           roleId: roleDto.role.id,
         },
       });
@@ -225,19 +248,19 @@ export class RolesService {
         return Promise.resolve();
       }
 
-      const roleInfo = interaction.guild.roles.cache.get(roleDto.role.id);
+      const roleInfo = interaction.guild?.roles.cache.get(roleDto.role.id);
       await user.roles.add(role.roleId);
       await interaction.reply({
-        content: `The role **${roleInfo.name}** has been added successfully.`,
+        content: `The role **${roleInfo?.name}** has been added successfully.`,
         ephemeral: true,
       });
       await this.actionLoggerService.roleAttach({
-        guildId: interaction.guildId,
+        guildId: guildId,
         author: interaction.user,
         role: roleDto.role,
       });
     } catch (e) {
-      this.logger.error(`Attach role ${interaction.guildId}: ${e}`);
+      this.logger.error(`Attach role ${guildId}: ${e}`);
       await interaction.reply({
         content:
           "An error occurred while adding the role. If it is role with admin permissions, bot can't assign it",
@@ -251,10 +274,14 @@ export class RolesService {
     roleDto: RolesDto,
     user: GuildMember,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const role = await this.rolesRepository.findOne({
         where: {
-          guild: { guildId: interaction.guildId },
+          guild: { guildId: guildId },
           roleId: roleDto.role.id,
         },
       });
@@ -267,19 +294,19 @@ export class RolesService {
         return Promise.resolve();
       }
 
-      const roleInfo = interaction.guild.roles.cache.get(roleDto.role.id);
+      const roleInfo = interaction.guild?.roles.cache.get(roleDto.role.id);
       await user.roles.remove(role.roleId);
       await interaction.reply({
-        content: `The role **${roleInfo.name}** has been removed successfully.`,
+        content: `The role **${roleInfo?.name}** has been removed successfully.`,
         ephemeral: true,
       });
       await this.actionLoggerService.roleDetach({
-        guildId: interaction.guildId,
+        guildId: guildId,
         author: interaction.user,
         role: roleDto.role,
       });
     } catch (e) {
-      this.logger.error(`Attach role ${interaction.guildId}: ${e}`);
+      this.logger.error(`Attach role ${guildId}: ${e}`);
       await interaction.reply({
         content:
           "An error occurred while adding the role. If it is role with admin permissions, bot can't assign it",

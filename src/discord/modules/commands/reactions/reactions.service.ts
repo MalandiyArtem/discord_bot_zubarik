@@ -35,6 +35,10 @@ export class ReactionsService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: ReactionsDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const channelIds = dto.channels
         ? this.utilService.getChannelIds(dto.channels, interaction)
@@ -60,14 +64,14 @@ export class ReactionsService {
         return Promise.resolve();
       }
 
-      await this.clearReactionsCache(interaction.guildId);
+      await this.clearReactionsCache(guildId);
 
       await this.reactionsEntityRepository.save({
         name: dto.name,
         channelIds: channelIds,
         userIds: userIds,
         emojis: emojiIds,
-        guild: { guildId: interaction.guildId },
+        guild: { guildId: guildId },
       });
 
       await interaction.reply({
@@ -76,7 +80,7 @@ export class ReactionsService {
       });
 
       await this.actionLoggerService.reactionsAdd({
-        guildId: interaction.guildId,
+        guildId: guildId,
         name: dto.name,
         emojis: emojiIds,
         userIds: userIds,
@@ -88,7 +92,7 @@ export class ReactionsService {
         content: `Something went wrong with adding reactions. Please try again or contact support`,
         ephemeral: true,
       });
-      this.logger.error(`Reactions add ${interaction.guildId}: ${e}`);
+      this.logger.error(`Reactions add ${guildId}: ${e}`);
     }
   }
 

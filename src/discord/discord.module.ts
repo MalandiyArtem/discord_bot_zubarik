@@ -18,14 +18,14 @@ import { ScheduleModule } from './modules/commands/schedule/schedule.module';
   imports: [
     ConfigModule.forRoot(),
     NecordModule.forRoot({
-      token: process.env.DISCORD_BOT_TOKEN,
+      token: process.env.DISCORD_BOT_TOKEN || '',
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
       ],
-      development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
+      development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID || ''],
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
     LogsChannelModule,

@@ -298,6 +298,7 @@ export class ActionLoggerService {
   }
 
   public async messageDelete(message: Message) {
+    if (!message.guild) return;
     try {
       const logChannel = await this.getLogChannel(message.guild.id);
 
@@ -340,6 +341,7 @@ export class ActionLoggerService {
     oldMessage: Message | PartialMessage,
     newMessage: Message | PartialMessage,
   ) {
+    if (!oldMessage.guild) return;
     try {
       if (oldMessage.author?.bot) return Promise.resolve();
       const logChannel = await this.getLogChannel(oldMessage.guild.id);
@@ -415,7 +417,7 @@ export class ActionLoggerService {
         where: { guildId: guildId },
       });
 
-      if (!guild.logChannelId) return;
+      if (!guild?.logChannelId) return;
 
       await this.cacheManager.set(
         CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace('{guildId}', guild.guildId),

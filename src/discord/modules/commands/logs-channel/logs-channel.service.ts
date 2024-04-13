@@ -31,16 +31,18 @@ export class LogsChannelService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: LogsChannelDto,
   ) {
+    const guildId = interaction.guildId;
+    if (!guildId) return;
+
     await this.cacheManager.del(
-      CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace(
-        '{guildId}',
-        interaction.guildId,
-      ),
+      CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace('{guildId}', guildId),
     );
 
     const guild = await this.guildRepository.findOne({
-      where: { guildId: interaction.guildId },
+      where: { guildId: guildId },
     });
+
+    if (!guild) return;
 
     if (dto.channel) {
       const updatedGuild = Object.assign(guild, {
@@ -50,7 +52,7 @@ export class LogsChannelService {
         .save(updatedGuild)
         .then(async () => {
           await this.actionLoggerService.addLogChannel(
-            interaction.guildId,
+            guildId,
             interaction.user,
           );
 

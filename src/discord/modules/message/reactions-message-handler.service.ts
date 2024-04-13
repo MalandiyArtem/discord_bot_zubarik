@@ -18,10 +18,14 @@ export class ReactionsMessageHandlerService {
   ) {}
 
   public async handle(message: Message) {
+    const guildId = message.guildId;
+
+    if (!guildId) return;
+
     try {
       const authorId = message.author.id;
       const channelId = message.channel.id;
-      const reactions = await this.getReactionsData(message.guildId);
+      const reactions = await this.getReactionsData(guildId);
 
       if (reactions.length === 0) {
         return Promise.resolve();
@@ -51,7 +55,7 @@ export class ReactionsMessageHandlerService {
         }
       }
     } catch (e) {
-      this.logger.error(`Set reactions in guild ${message.guildId}: ${e}`);
+      this.logger.error(`Set reactions in guild ${guildId}: ${e}`);
     }
   }
 
