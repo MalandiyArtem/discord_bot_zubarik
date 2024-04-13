@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Context, Opts, SlashCommand, SlashCommandContext } from 'necord';
 import { PermissionFlagsBits } from 'discord.js';
 import { ShadowBanDto } from './dto/shadow-ban.dto';
@@ -9,6 +9,8 @@ import { ShadowBanEntity } from './entities/shadow-ban.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import { ShadowBanPaginationService } from '../../pagination/shadow-ban/shadow-ban-pagination.service';
 import { ModuleRef } from '@nestjs/core';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_KEYS } from '../../../../constants/cache';
 
 @Injectable()
 export class ShadowBanService {
@@ -20,6 +22,7 @@ export class ShadowBanService {
     private readonly shadowBanRepository: Repository<ShadowBanEntity>,
     private readonly actionLoggerService: ActionLoggerService,
     private readonly moduleRef: ModuleRef,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @SlashCommand({
@@ -55,6 +58,8 @@ export class ShadowBanService {
         });
         return Promise.resolve();
       }
+
+      await this.clearShadowBanCache(userIds, interaction.guildId);
 
       await this.shadowBanRepository.save({
         name: dto.name,
@@ -103,5 +108,15 @@ export class ShadowBanService {
     });
 
     return shadowBan !== null;
+  }
+
+  private async clearShadowBanCache(userIds: string[], guildId: string) {
+    for (const userId of userIds) {
+      await this.cacheManager.del(
+        CACHE_KEYS.SHADOW_BAN.key
+          .replace('{guildId}', guildId)
+          .replace('{userId}', userId),
+      );
+    }
   }
 }

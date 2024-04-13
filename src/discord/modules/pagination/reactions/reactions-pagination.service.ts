@@ -14,9 +14,11 @@ import { ButtonIds } from '../enums/button-ids.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmbedsService } from '../../embeds/embeds.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import { ReactionsEntity } from '../../commands/reactions/entities/reactions.entity';
+import { CACHE_KEYS } from '../../../../constants/cache';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class ReactionsPaginationService extends BasePaginationHandler<ReactionsEntity> {
@@ -31,6 +33,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
     private readonly embedsService: EmbedsService,
     private readonly actionLoggerService: ActionLoggerService,
     private readonly client: Client,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super(1);
   }
@@ -196,6 +199,8 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
         id: pageDeletedInfo.pageData.id,
       });
 
+      await this.clearReactionsCache(interaction.guildId);
+
       await this.actionLoggerService.reactionsRemove({
         guildId: interaction.guildId,
         name: pageDeletedInfo.pageData.name,
@@ -240,5 +245,11 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
     } catch (e) {
       this.logger.error(`Reactions delete ${interaction.guildId}: ${e}`);
     }
+  }
+
+  private async clearReactionsCache(guildId: string) {
+    await this.cacheManager.del(
+      CACHE_KEYS.REACTIONS.key.replace('{guildId}', guildId),
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Context, Opts, SlashCommand, SlashCommandContext } from 'necord';
 import { PermissionFlagsBits } from 'discord.js';
 import { ReactionsDto } from './dto/reactions.dto';
@@ -9,6 +9,8 @@ import { ReactionsEntity } from './entities/reactions.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import { ReactionsPaginationService } from '../../pagination/reactions/reactions-pagination.service';
 import { ModuleRef } from '@nestjs/core';
+import { CACHE_KEYS } from '../../../../constants/cache';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class ReactionsService {
@@ -20,6 +22,7 @@ export class ReactionsService {
     private readonly reactionsEntityRepository: Repository<ReactionsEntity>,
     private readonly actionLoggerService: ActionLoggerService,
     private readonly moduleRef: ModuleRef,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @SlashCommand({
@@ -56,6 +59,8 @@ export class ReactionsService {
         });
         return Promise.resolve();
       }
+
+      await this.clearReactionsCache(interaction.guildId);
 
       await this.reactionsEntityRepository.save({
         name: dto.name,
@@ -106,5 +111,11 @@ export class ReactionsService {
     });
 
     return reactions !== null;
+  }
+
+  private async clearReactionsCache(guildId: string) {
+    await this.cacheManager.del(
+      CACHE_KEYS.REACTIONS.key.replace('{guildId}', guildId),
+    );
   }
 }
