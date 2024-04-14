@@ -8,6 +8,8 @@ import { Repository } from 'typeorm';
 import { ScheduledRenameEntity } from './entities/scheduled-rename.entity';
 import { ActionLoggerService } from '../../../action-logger/action-logger.service';
 import { IDateParams } from '../interfaces/date-params.interface';
+import { ModuleRef } from '@nestjs/core';
+import { ScheduledRenamePaginationService } from '../../../pagination/scheduled/scheduled-rename-pagination.service';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -19,6 +21,7 @@ export class ScheduleRenameChannelService {
     @InjectRepository(ScheduledRenameEntity)
     private readonly scheduledRenameEntityRepository: Repository<ScheduledRenameEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @Subcommand({
@@ -98,5 +101,19 @@ export class ScheduleRenameChannelService {
       content: 'Unable to schedule renaming. Please try again',
       ephemeral: true,
     });
+  }
+
+  @Subcommand({
+    name: 'rename-list',
+    description: 'Display list of scheduled rename channels',
+    dmPermission: false,
+  })
+  public async onScheduleRenameList(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const scheduledRenamePaginationService = await this.moduleRef.create(
+      ScheduledRenamePaginationService,
+    );
+    await scheduledRenamePaginationService.showList(interaction);
   }
 }

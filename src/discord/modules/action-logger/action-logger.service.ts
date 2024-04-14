@@ -478,6 +478,33 @@ export class ActionLoggerService {
     }
   }
 
+  public async scheduleRenameRemove(options: ScheduleRenameParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Scheduled rename channel has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Renaming has been removed by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` })
+        .addFields({
+          name: 'New channel name',
+          value: `${options.newChannelName}`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Rename Add ${options.guildId}: ${e}`);
+    }
+  }
+
   private async getLogChannel(guildId: string) {
     try {
       const cacheLogChannel = await this.cacheManager.get<string>(
