@@ -72,7 +72,7 @@ export class ScheduleMessageDto {
     min_value: new Date().getUTCFullYear(),
     required: false,
   })
-  year: number;
+  year?: number;
 
   @IntegerOption({
     name: 'hours',
@@ -81,7 +81,7 @@ export class ScheduleMessageDto {
     max_value: 23,
     required: false,
   })
-  hours: number;
+  hours?: number;
 
   @IntegerOption({
     name: 'minutes',
@@ -90,7 +90,7 @@ export class ScheduleMessageDto {
     max_value: 59,
     required: false,
   })
-  minutes: number;
+  minutes?: number;
 
   @IntegerOption({
     name: 'seconds',
@@ -99,7 +99,7 @@ export class ScheduleMessageDto {
     max_value: 59,
     required: false,
   })
-  seconds: number;
+  seconds?: number;
 
   @StringOption({
     name: 'message',
@@ -107,7 +107,7 @@ export class ScheduleMessageDto {
     max_length: 1799,
     required: false,
   })
-  message: string;
+  message?: string;
 
   @StringOption({
     name: 'prompt',
@@ -116,12 +116,12 @@ export class ScheduleMessageDto {
     max_length: 1799,
     required: false,
   })
-  prompt: string;
+  prompt?: string;
 
   @AttachmentOption({
     name: 'attachment',
     description: 'Attachment',
     required: false,
   })
-  attachment: Attachment;
+  attachment?: Attachment;
 }

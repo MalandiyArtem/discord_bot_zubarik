@@ -13,6 +13,7 @@ import { RolesModule } from './modules/commands/roles/roles.module';
 import { ReactionsModule } from './modules/commands/reactions/reactions.module';
 import { GifModule } from './modules/commands/gif/gif.module';
 import { ScheduleModule } from './modules/commands/schedule/schedule.module';
+import { TenorGifModule } from './modules/tenor-gif/tenor-gif.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ScheduleModule } from './modules/commands/schedule/schedule.module';
     ReactionsModule,
     GifModule,
     ScheduleModule,
+    TenorGifModule,
   ],
   providers: [DiscordService, GuildService],
 })
