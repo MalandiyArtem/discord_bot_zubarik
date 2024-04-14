@@ -19,13 +19,13 @@ export class ScheduledMessageEntity {
   readableDate: string;
 
   @Column({ nullable: true })
-  attachmentUrl: string;
+  attachmentUrl?: string;
 
   @Column({ nullable: true })
-  message: string;
+  message?: string;
 
   @Column({ nullable: true })
-  gifUrl: string;
+  gifUrl?: string;
 
   @ManyToOne(() => GuildsEntity, (guild) => guild.scheduledMessages)
   guild: GuildsEntity;

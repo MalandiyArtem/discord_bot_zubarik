@@ -428,6 +428,29 @@ export class ActionLoggerService {
     }
   }
 
+  public async scheduleMessageRemove(options: ScheduleMessageParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Scheduled message has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Message has been removed by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Message Remove ${options.guildId}: ${e}`);
+    }
+  }
+
   public async scheduleRenameAdd(options: ScheduleRenameParams) {
     try {
       const logChannel = await this.getLogChannel(options.guildId);

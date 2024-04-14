@@ -7,12 +7,14 @@ import { TenorGifModule } from '../../tenor-gif/tenor-gif.module';
 import { ActionLoggerModule } from '../../action-logger/action-logger.module';
 import { ScheduledRenameEntity } from './rename/entities/scheduled-rename.entity';
 import { ScheduleRenameChannelService } from './rename/schedule-rename-channel.service';
+import { EmbedsModule } from '../../embeds/embeds.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ScheduledMessageEntity, ScheduledRenameEntity]),
     TenorGifModule,
     ActionLoggerModule,
+    EmbedsModule,
   ],
   exports: [],
   providers: [

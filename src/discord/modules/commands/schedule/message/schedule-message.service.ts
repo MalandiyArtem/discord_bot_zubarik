@@ -9,6 +9,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ScheduledMessageEntity } from './entities/scheduled-message.entity';
 import { ActionLoggerService } from '../../../action-logger/action-logger.service';
+import { ModuleRef } from '@nestjs/core';
+import { ScheduledMessagePaginationService } from '../../../pagination/scheduled/scheduled-message-pagination.service';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -21,6 +23,7 @@ export class ScheduleMessageService {
     @InjectRepository(ScheduledMessageEntity)
     private readonly scheduledMessageEntityRepository: Repository<ScheduledMessageEntity>,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @Subcommand({
@@ -114,5 +117,19 @@ export class ScheduleMessageService {
       content: 'Unable to schedule message. Please try again',
       ephemeral: true,
     });
+  }
+
+  @Subcommand({
+    name: 'message-list',
+    description: 'Display list of scheduled messages',
+    dmPermission: false,
+  })
+  public async onScheduleMessageList(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const scheduledMessagePaginationService = await this.moduleRef.create(
+      ScheduledMessagePaginationService,
+    );
+    await scheduledMessagePaginationService.showList(interaction);
   }
 }
