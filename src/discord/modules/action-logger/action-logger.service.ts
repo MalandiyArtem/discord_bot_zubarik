@@ -14,6 +14,7 @@ import {
 import { ReactionsLogParams } from './types/reactions-params';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../constants/cache';
+import { ScheduleMessageParams } from './types/schedule-message-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -400,6 +401,29 @@ export class ActionLoggerService {
       });
     } catch (e) {
       this.logger.error(`Message update ${oldMessage.guild.id}: ${e}`);
+    }
+  }
+
+  public async scheduleMessageAdd(options: ScheduleMessageParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Scheduled message has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Message has been scheduled by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Message Add ${options.guildId}: ${e}`);
     }
   }
 

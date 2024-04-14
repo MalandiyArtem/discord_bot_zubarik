@@ -12,7 +12,7 @@ export class ScheduledMessageEntity {
   @Column()
   channelId: string;
 
-  @Column()
+  @Column({ type: 'timestamp with time zone' })
   date: Date;
 
   @Column()

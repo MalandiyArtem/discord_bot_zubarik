@@ -29,7 +29,7 @@ export class TenorGifService {
       return response.data.results[0].url;
     } catch (error) {
       console.error('Error while fetching gif:', error);
+      return Promise.resolve(null);
     }
-    return Promise.resolve(null);
   }
 }

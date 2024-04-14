@@ -5,6 +5,10 @@ import { ScheduleMessageDto } from './dto/schedule-message.dto';
 import { ScheduleUtilsService } from '../schedule-utils.service';
 import { IDateParams } from '../interfaces/date-params.interface';
 import { TenorGifService } from '../../../tenor-gif/tenor-gif.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ScheduledMessageEntity } from './entities/scheduled-message.entity';
+import { ActionLoggerService } from '../../../action-logger/action-logger.service';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -14,6 +18,9 @@ export class ScheduleMessageService {
   constructor(
     private scheduleUtilsService: ScheduleUtilsService,
     private tenorGifService: TenorGifService,
+    @InjectRepository(ScheduledMessageEntity)
+    private readonly scheduledMessageEntityRepository: Repository<ScheduledMessageEntity>,
+    private readonly actionLoggerService: ActionLoggerService,
   ) {}
 
   @Subcommand({
@@ -25,6 +32,17 @@ export class ScheduleMessageService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: ScheduleMessageDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+
+      return;
+    }
+
     const dateParams: IDateParams = {
       day: dto.day,
       month: dto.month,
@@ -62,5 +80,39 @@ export class ScheduleMessageService {
       dto.timezone,
     );
     const readableDate = `${this.scheduleUtilsService.getReadableDate(dateParams)} (GMT ${dto.timezone})`;
+
+    const scheduledMessageResult =
+      await this.scheduledMessageEntityRepository.save({
+        authorId: interaction.user.id,
+        channelId: dto.channel.id,
+        date: scheduledDate,
+        readableDate: readableDate,
+        attachmentUrl: dto.attachment?.url,
+        message: dto.message,
+        gifUrl: gifUrl || undefined,
+        guild: {
+          guildId: guildId,
+        },
+      });
+
+    if (scheduledMessageResult) {
+      await interaction.reply({
+        content: `Your message has been scheduled for \`${readableDate}\` in \`${dto.channel.name}\` channel`,
+        ephemeral: true,
+      });
+
+      await this.actionLoggerService.scheduleMessageAdd({
+        guildId: guildId,
+        channelId: dto.channel.id,
+        readableDate: readableDate,
+        author: interaction.user,
+      });
+      return Promise.resolve();
+    }
+
+    await interaction.reply({
+      content: 'Unable to schedule message. Please try again',
+      ephemeral: true,
+    });
   }
 }
