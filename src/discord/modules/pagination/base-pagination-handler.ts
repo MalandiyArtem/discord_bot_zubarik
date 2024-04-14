@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { UpdateEmbedOnEmptyRecordsType } from './types/update-embed-on-empty-records.type';
 
+// TODO: These hierarchy needs refactoring
 export abstract class BasePaginationHandler<T> {
   protected itemsPerPage: number;
 

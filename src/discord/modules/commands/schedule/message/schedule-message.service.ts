@@ -11,6 +11,9 @@ import { ScheduledMessageEntity } from './entities/scheduled-message.entity';
 import { ActionLoggerService } from '../../../action-logger/action-logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { ScheduledMessagePaginationService } from '../../../pagination/scheduled/scheduled-message-pagination.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import * as schedule from 'node-schedule';
+import { Client, TextChannel } from 'discord.js';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -24,6 +27,7 @@ export class ScheduleMessageService {
     private readonly scheduledMessageEntityRepository: Repository<ScheduledMessageEntity>,
     private readonly actionLoggerService: ActionLoggerService,
     private readonly moduleRef: ModuleRef,
+    private readonly client: Client,
   ) {}
 
   @Subcommand({
@@ -131,5 +135,77 @@ export class ScheduleMessageService {
       ScheduledMessagePaginationService,
     );
     await scheduledMessagePaginationService.showList(interaction);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleSendScheduledMessageCron() {
+    try {
+      const currentDate = new Date();
+      currentDate.setMinutes(currentDate.getMinutes() + 1);
+
+      const utcDate = currentDate.toISOString();
+
+      const scheduledMessages = await this.scheduledMessageEntityRepository
+        .createQueryBuilder('scheduled_message')
+        .where('scheduled_message.date <= :date', { date: utcDate })
+        .getMany();
+
+      for (const scheduledMessage of scheduledMessages) {
+        const currentDateCronUTCMilliseconds = new Date(
+          new Date().toISOString(),
+        ).getTime();
+
+        if (scheduledMessage.date.getTime() <= currentDateCronUTCMilliseconds) {
+          await this.sendScheduledMessage(scheduledMessage);
+          break;
+        }
+
+        schedule.scheduleJob(
+          scheduledMessage.date.setSeconds(scheduledMessage.date.getSeconds()),
+          async () => {
+            const currentDateCronUTCMilliseconds = new Date(
+              new Date().toISOString(),
+            ).getTime();
+            if (
+              scheduledMessage.date.getTime() > currentDateCronUTCMilliseconds
+            ) {
+              await this.sendScheduledMessage(scheduledMessage);
+            }
+          },
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Send Schedule Message Cron: `, e);
+    }
+  }
+
+  private async sendScheduledMessage(scheduledMessage: ScheduledMessageEntity) {
+    const channel = this.client.channels.cache.get(
+      scheduledMessage.channelId,
+    ) as TextChannel;
+
+    if (!channel) return;
+
+    if (scheduledMessage.attachmentUrl) {
+      await channel.send({
+        files: [{ attachment: scheduledMessage.attachmentUrl }],
+      });
+    }
+
+    if (scheduledMessage.message) {
+      await channel.send({ content: scheduledMessage.message });
+    }
+
+    if (scheduledMessage.gifUrl) {
+      await channel.send({ content: scheduledMessage.gifUrl });
+    }
+
+    await this.deleteScheduledMessageFromDb(scheduledMessage.scheduleMessageId);
+  }
+
+  private async deleteScheduledMessageFromDb(scheduleMessageId: string) {
+    await this.scheduledMessageEntityRepository.delete({
+      scheduleMessageId: scheduleMessageId,
+    });
   }
 }
