@@ -15,6 +15,7 @@ import { ReactionsLogParams } from './types/reactions-params';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../constants/cache';
 import { ScheduleMessageParams } from './types/schedule-message-params';
+import { ScheduleRenameParams } from './types/schedule-rename-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -424,6 +425,33 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Schedule Message Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async scheduleRenameAdd(options: ScheduleRenameParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Scheduled rename channel has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Renaming has been scheduled by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` })
+        .addFields({
+          name: 'New channel name',
+          value: `${options.newChannelName}`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Rename Add ${options.guildId}: ${e}`);
     }
   }
 

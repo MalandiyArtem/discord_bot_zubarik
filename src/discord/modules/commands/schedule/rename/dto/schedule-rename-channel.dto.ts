@@ -68,7 +68,7 @@ export class ScheduleRenameChannelDto {
     max_length: 99,
     required: true,
   })
-  message: string;
+  newChannelName: string;
 
   @IntegerOption({
     name: 'year',
