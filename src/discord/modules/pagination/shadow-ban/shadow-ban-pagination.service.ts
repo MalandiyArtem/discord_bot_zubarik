@@ -39,8 +39,12 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
   public async showList(
     interaction: ChatInputCommandInteraction<CacheType>,
   ): Promise<void> {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     this.presets = await this.shadowBanRepository.find({
-      where: { guild: { guildId: interaction.guildId } },
+      where: { guild: { guildId: guildId } },
       relations: ['guild'],
     });
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
@@ -181,16 +185,17 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const pageDeletedInfo = this.getPageInfo(this.currentPage);
       await this.shadowBanRepository.delete({
         banId: pageDeletedInfo.pageData.banId,
       });
 
-      await this.clearShadowBanCache(
-        pageDeletedInfo.pageData.userIds,
-        interaction.guildId,
-      );
+      await this.clearShadowBanCache(pageDeletedInfo.pageData.userIds, guildId);
 
       await this.actionLoggerService.shadowBanRemove({
         name: pageDeletedInfo.pageData.name,
@@ -215,7 +220,7 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
       }
 
       this.presets = await this.shadowBanRepository.find({
-        where: { guild: { guildId: interaction.guildId } },
+        where: { guild: { guildId: guildId } },
         relations: ['guild'],
       });
       this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
@@ -233,7 +238,7 @@ export class ShadowBanPaginationService extends BasePaginationHandler<ShadowBanE
       await this.updateEmbedOnBtnClick(embed, btnInteraction);
       return Promise.resolve();
     } catch (e) {
-      this.logger.error(`Shadow ban delete ${interaction.guildId}: ${e}`);
+      this.logger.error(`Shadow ban delete ${guildId}: ${e}`);
     }
   }
 

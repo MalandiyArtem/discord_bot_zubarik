@@ -12,19 +12,21 @@ import { MessageModule } from './modules/message/message.module';
 import { RolesModule } from './modules/commands/roles/roles.module';
 import { ReactionsModule } from './modules/commands/reactions/reactions.module';
 import { GifModule } from './modules/commands/gif/gif.module';
+import { ScheduleModule } from './modules/commands/schedule/schedule.module';
+import { TenorGifModule } from './modules/tenor-gif/tenor-gif.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     NecordModule.forRoot({
-      token: process.env.DISCORD_BOT_TOKEN,
+      token: process.env.DISCORD_BOT_TOKEN || '',
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
       ],
-      development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID],
+      development: [process.env.DISCORD_DEVELOPMENT_GUILD_ID || ''],
     }),
     TypeOrmModule.forFeature([GuildsEntity]),
     LogsChannelModule,
@@ -33,6 +35,8 @@ import { GifModule } from './modules/commands/gif/gif.module';
     RolesModule,
     ReactionsModule,
     GifModule,
+    ScheduleModule,
+    TenorGifModule,
   ],
   providers: [DiscordService, GuildService],
 })

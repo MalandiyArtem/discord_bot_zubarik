@@ -1,4 +1,10 @@
+import { Injectable, Logger } from '@nestjs/common';
 import { BasePaginationHandler } from '../base-pagination-handler';
+import { ScheduledRenameEntity } from '../../commands/schedule/rename/entities/scheduled-rename.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { EmbedsService } from '../../embeds/embeds.service';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -6,34 +12,23 @@ import {
   ButtonStyle,
   CacheType,
   ChatInputCommandInteraction,
-  Client,
   EmbedBuilder,
   InteractionResponse,
 } from 'discord.js';
 import { ButtonIds } from '../enums/button-ids.enum';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { EmbedsService } from '../../embeds/embeds.service';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ActionLoggerService } from '../../action-logger/action-logger.service';
-import { ReactionsEntity } from '../../commands/reactions/entities/reactions.entity';
-import { CACHE_KEYS } from '../../../../constants/cache';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
-export class ReactionsPaginationService extends BasePaginationHandler<ReactionsEntity> {
+export class ScheduledRenamePaginationService extends BasePaginationHandler<ScheduledRenameEntity> {
   private currentPage = 1;
   private totalPages: number = 0;
-  private presets: ReactionsEntity[] = [];
-  private readonly logger = new Logger(ReactionsPaginationService.name);
+  private presets: ScheduledRenameEntity[] = [];
+  private readonly logger = new Logger(ScheduledRenamePaginationService.name);
 
   constructor(
-    @InjectRepository(ReactionsEntity)
-    private readonly reactionsEntityRepository: Repository<ReactionsEntity>,
+    @InjectRepository(ScheduledRenameEntity)
+    private readonly scheduledRenameEntityRepository: Repository<ScheduledRenameEntity>,
     private readonly embedsService: EmbedsService,
     private readonly actionLoggerService: ActionLoggerService,
-    private readonly client: Client,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super(1);
   }
@@ -45,17 +40,18 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     if (!guildId) return;
 
-    this.presets = await this.reactionsEntityRepository.find({
+    this.presets = await this.scheduledRenameEntityRepository.find({
       where: { guild: { guildId: guildId } },
       relations: ['guild'],
     });
+
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
 
     if (this.totalPages === 0) {
       await this.updateEmbedOnEmptyRecords({
         reason: 'request',
         interaction,
-        title: 'No one registered reactions',
+        title: 'No one scheduled rename channels',
         embed: this.embedsService.getAddEmbed(),
       });
       return Promise.resolve();
@@ -63,16 +59,23 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     const pageInfo = this.getPageInfo(this.currentPage);
     const embed = this.embedsService.getAddEmbed();
-    const emojis = pageInfo.pageData.emojis
-      .map((emojiId) => `${this.client.emojis.cache.get(emojiId) || emojiId}`)
-      .join(' ');
-
     embed
-      .setTitle('Reactions')
-      .addFields({ name: 'Name', value: pageInfo.pageData.name })
-      .addFields({ name: 'Emoji', value: emojis })
-      .addFields({ name: 'User', value: pageInfo.user })
-      .addFields({ name: 'Channel', value: pageInfo.channel })
+      .setTitle('Scheduled rename channel')
+      .addFields({
+        name: 'Author',
+        value: `<@${pageInfo.pageData.authorId}>`,
+        inline: true,
+      })
+      .addFields({
+        name: 'Channel',
+        value: `<#${pageInfo.pageData.channelId}>`,
+        inline: true,
+      })
+      .addFields({
+        name: 'New channel name',
+        value: pageInfo.pageData.newChannelName,
+      })
+      .addFields({ name: 'Date', value: pageInfo.pageData.readableDate })
       .addFields({
         name: ' ',
         value: `Page ${this.currentPage}/${this.totalPages}`,
@@ -132,7 +135,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       }
 
       if (btnInteraction.customId === ButtonIds.list_delete) {
-        await this.deleteReactions(interaction, embed, btnInteraction);
+        await this.deleteScheduledRename(interaction, embed, btnInteraction);
       }
 
       collector.stop('btnClick');
@@ -152,16 +155,26 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
     const pageInfo = this.getPageInfo(this.currentPage);
-    const emojis = pageInfo.pageData.emojis
-      .map((emojiId) => `${this.client.emojis.cache.get(emojiId) || emojiId}`)
-      .join(' ');
-
     embed.setFields(
-      { name: 'Name', value: pageInfo.pageData.name },
-      { name: 'Emoji', value: emojis },
-      { name: 'User', value: pageInfo.user },
-      { name: 'Channel', value: pageInfo.channel },
-      { name: ' ', value: `Page ${this.currentPage}/${this.totalPages}` },
+      {
+        name: 'Author',
+        value: `<@${pageInfo.pageData.authorId}>`,
+        inline: true,
+      },
+      {
+        name: 'Channel',
+        value: `<#${pageInfo.pageData.channelId}>`,
+        inline: true,
+      },
+      {
+        name: 'New channel name',
+        value: pageInfo.pageData.newChannelName,
+      },
+      { name: 'Date', value: pageInfo.pageData.readableDate },
+      {
+        name: ' ',
+        value: `Page ${this.currentPage}/${this.totalPages}`,
+      },
     );
     await btnInteraction.update({
       embeds: [embed],
@@ -176,23 +189,12 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       startIndex + this.itemsPerPage,
     )[0];
 
-    const channel =
-      pageData.channelIds.length > 0
-        ? pageData.channelIds.map((item) => `<#${item}>`).join(' ')
-        : 'All channels';
-    const user =
-      pageData.userIds.length > 0
-        ? pageData.userIds.map((userId) => `<@${userId}>`).join(' ')
-        : 'All users';
-
     return {
       pageData,
-      channel,
-      user,
     };
   }
 
-  private async deleteReactions(
+  private async deleteScheduledRename(
     interaction: ChatInputCommandInteraction<CacheType>,
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
@@ -203,19 +205,16 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     try {
       const pageDeletedInfo = this.getPageInfo(this.currentPage);
-      await this.reactionsEntityRepository.delete({
-        id: pageDeletedInfo.pageData.id,
+      await this.scheduledRenameEntityRepository.delete({
+        scheduleRenameId: pageDeletedInfo.pageData.scheduleRenameId,
       });
 
-      await this.clearReactionsCache(guildId);
-
-      await this.actionLoggerService.reactionsRemove({
-        guildId: guildId,
-        name: pageDeletedInfo.pageData.name,
-        emojis: pageDeletedInfo.pageData.emojis,
-        userIds: pageDeletedInfo.pageData.userIds,
-        channelIds: pageDeletedInfo.pageData.channelIds,
+      await this.actionLoggerService.scheduleRenameRemove({
+        guildId: pageDeletedInfo.pageData.guild.guildId,
         author: interaction.user,
+        readableDate: pageDeletedInfo.pageData.readableDate,
+        channelId: pageDeletedInfo.pageData.channelId,
+        newChannelName: pageDeletedInfo.pageData.newChannelName,
       });
 
       const isOnePage =
@@ -232,7 +231,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
         this.currentPage = 1;
       }
 
-      this.presets = await this.reactionsEntityRepository.find({
+      this.presets = await this.scheduledRenameEntityRepository.find({
         where: { guild: { guildId: guildId } },
         relations: ['guild'],
       });
@@ -242,7 +241,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
         await this.updateEmbedOnEmptyRecords({
           reason: 'delete',
           btnInteraction,
-          title: 'No one registered reactions',
+          title: 'No one scheduled rename channels',
           embed: this.embedsService.getAddEmbed(),
         });
         return Promise.resolve();
@@ -251,13 +250,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       await this.updateEmbedOnBtnClick(embed, btnInteraction);
       return Promise.resolve();
     } catch (e) {
-      this.logger.error(`Reactions delete ${interaction.guildId}: ${e}`);
+      this.logger.error(`Scheduled Rename Delete ${guildId}: ${e}`);
     }
-  }
-
-  private async clearReactionsCache(guildId: string) {
-    await this.cacheManager.del(
-      CACHE_KEYS.REACTIONS.key.replace('{guildId}', guildId),
-    );
   }
 }

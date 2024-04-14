@@ -35,6 +35,10 @@ export class ShadowBanService {
     @Context() [interaction]: SlashCommandContext,
     @Opts() dto: ShadowBanDto,
   ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) return;
+
     try {
       const channelIds = dto.channels
         ? this.utilService.getChannelIds(dto.channels, interaction)
@@ -59,13 +63,13 @@ export class ShadowBanService {
         return Promise.resolve();
       }
 
-      await this.clearShadowBanCache(userIds, interaction.guildId);
+      await this.clearShadowBanCache(userIds, guildId);
 
       await this.shadowBanRepository.save({
         name: dto.name,
         channelIds: channelIds,
         userIds: userIds,
-        guild: { guildId: interaction.guildId },
+        guild: { guildId: guildId },
       });
 
       await interaction.reply({
@@ -74,7 +78,7 @@ export class ShadowBanService {
       });
 
       await this.actionLoggerService.shadowBanAdd({
-        guildId: interaction.guildId,
+        guildId: guildId,
         bannedUsersIds: userIds,
         channelIds: channelIds,
         author: interaction.user,

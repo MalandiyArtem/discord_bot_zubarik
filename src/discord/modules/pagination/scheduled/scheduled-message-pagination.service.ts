@@ -1,4 +1,10 @@
+import { Injectable, Logger } from '@nestjs/common';
 import { BasePaginationHandler } from '../base-pagination-handler';
+import { ScheduledMessageEntity } from '../../commands/schedule/message/entities/scheduled-message.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { EmbedsService } from '../../embeds/embeds.service';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -6,34 +12,23 @@ import {
   ButtonStyle,
   CacheType,
   ChatInputCommandInteraction,
-  Client,
   EmbedBuilder,
   InteractionResponse,
 } from 'discord.js';
 import { ButtonIds } from '../enums/button-ids.enum';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { EmbedsService } from '../../embeds/embeds.service';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ActionLoggerService } from '../../action-logger/action-logger.service';
-import { ReactionsEntity } from '../../commands/reactions/entities/reactions.entity';
-import { CACHE_KEYS } from '../../../../constants/cache';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
-export class ReactionsPaginationService extends BasePaginationHandler<ReactionsEntity> {
+export class ScheduledMessagePaginationService extends BasePaginationHandler<ScheduledMessageEntity> {
   private currentPage = 1;
   private totalPages: number = 0;
-  private presets: ReactionsEntity[] = [];
-  private readonly logger = new Logger(ReactionsPaginationService.name);
+  private presets: ScheduledMessageEntity[] = [];
+  private readonly logger = new Logger(ScheduledMessagePaginationService.name);
 
   constructor(
-    @InjectRepository(ReactionsEntity)
-    private readonly reactionsEntityRepository: Repository<ReactionsEntity>,
+    @InjectRepository(ScheduledMessageEntity)
+    private readonly scheduledMessageEntityRepository: Repository<ScheduledMessageEntity>,
     private readonly embedsService: EmbedsService,
     private readonly actionLoggerService: ActionLoggerService,
-    private readonly client: Client,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super(1);
   }
@@ -45,17 +40,18 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     if (!guildId) return;
 
-    this.presets = await this.reactionsEntityRepository.find({
+    this.presets = await this.scheduledMessageEntityRepository.find({
       where: { guild: { guildId: guildId } },
       relations: ['guild'],
     });
+
     this.totalPages = this.getTotalPages(this.presets, this.itemsPerPage);
 
     if (this.totalPages === 0) {
       await this.updateEmbedOnEmptyRecords({
         reason: 'request',
         interaction,
-        title: 'No one registered reactions',
+        title: 'No one scheduled messages',
         embed: this.embedsService.getAddEmbed(),
       });
       return Promise.resolve();
@@ -63,16 +59,28 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     const pageInfo = this.getPageInfo(this.currentPage);
     const embed = this.embedsService.getAddEmbed();
-    const emojis = pageInfo.pageData.emojis
-      .map((emojiId) => `${this.client.emojis.cache.get(emojiId) || emojiId}`)
-      .join(' ');
-
     embed
-      .setTitle('Reactions')
-      .addFields({ name: 'Name', value: pageInfo.pageData.name })
-      .addFields({ name: 'Emoji', value: emojis })
-      .addFields({ name: 'User', value: pageInfo.user })
-      .addFields({ name: 'Channel', value: pageInfo.channel })
+      .setTitle('Scheduled message')
+      .addFields({
+        name: 'Author',
+        value: `<@${pageInfo.pageData.authorId}>`,
+        inline: true,
+      })
+      .addFields({
+        name: 'Channel',
+        value: `<#${pageInfo.pageData.channelId}>`,
+        inline: true,
+      })
+      .addFields({ name: 'Date', value: pageInfo.pageData.readableDate })
+      .addFields({
+        name: 'Attachment',
+        value: pageInfo.pageData.attachmentUrl || '-',
+      })
+      .addFields({ name: 'Gif', value: pageInfo.pageData.gifUrl || '-' })
+      .addFields({
+        name: 'Message',
+        value: pageInfo.pageData.message || '-',
+      })
       .addFields({
         name: ' ',
         value: `Page ${this.currentPage}/${this.totalPages}`,
@@ -132,7 +140,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       }
 
       if (btnInteraction.customId === ButtonIds.list_delete) {
-        await this.deleteReactions(interaction, embed, btnInteraction);
+        await this.deleteScheduledMessage(interaction, embed, btnInteraction);
       }
 
       collector.stop('btnClick');
@@ -152,16 +160,31 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
     btnInteraction: ButtonInteraction<CacheType>,
   ) {
     const pageInfo = this.getPageInfo(this.currentPage);
-    const emojis = pageInfo.pageData.emojis
-      .map((emojiId) => `${this.client.emojis.cache.get(emojiId) || emojiId}`)
-      .join(' ');
-
     embed.setFields(
-      { name: 'Name', value: pageInfo.pageData.name },
-      { name: 'Emoji', value: emojis },
-      { name: 'User', value: pageInfo.user },
-      { name: 'Channel', value: pageInfo.channel },
-      { name: ' ', value: `Page ${this.currentPage}/${this.totalPages}` },
+      {
+        name: 'Author',
+        value: `<@${pageInfo.pageData.authorId}>`,
+        inline: true,
+      },
+      {
+        name: 'Channel',
+        value: `<#${pageInfo.pageData.channelId}>`,
+        inline: true,
+      },
+      { name: 'Date', value: pageInfo.pageData.readableDate },
+      {
+        name: 'Attachment',
+        value: pageInfo.pageData.attachmentUrl || '-',
+      },
+      { name: 'Gif', value: pageInfo.pageData.gifUrl || '-' },
+      {
+        name: 'Message',
+        value: pageInfo.pageData.message || '-',
+      },
+      {
+        name: ' ',
+        value: `Page ${this.currentPage}/${this.totalPages}`,
+      },
     );
     await btnInteraction.update({
       embeds: [embed],
@@ -176,23 +199,12 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       startIndex + this.itemsPerPage,
     )[0];
 
-    const channel =
-      pageData.channelIds.length > 0
-        ? pageData.channelIds.map((item) => `<#${item}>`).join(' ')
-        : 'All channels';
-    const user =
-      pageData.userIds.length > 0
-        ? pageData.userIds.map((userId) => `<@${userId}>`).join(' ')
-        : 'All users';
-
     return {
       pageData,
-      channel,
-      user,
     };
   }
 
-  private async deleteReactions(
+  private async deleteScheduledMessage(
     interaction: ChatInputCommandInteraction<CacheType>,
     embed: EmbedBuilder,
     btnInteraction: ButtonInteraction<CacheType>,
@@ -203,19 +215,15 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
 
     try {
       const pageDeletedInfo = this.getPageInfo(this.currentPage);
-      await this.reactionsEntityRepository.delete({
-        id: pageDeletedInfo.pageData.id,
+      await this.scheduledMessageEntityRepository.delete({
+        scheduleMessageId: pageDeletedInfo.pageData.scheduleMessageId,
       });
 
-      await this.clearReactionsCache(guildId);
-
-      await this.actionLoggerService.reactionsRemove({
-        guildId: guildId,
-        name: pageDeletedInfo.pageData.name,
-        emojis: pageDeletedInfo.pageData.emojis,
-        userIds: pageDeletedInfo.pageData.userIds,
-        channelIds: pageDeletedInfo.pageData.channelIds,
+      await this.actionLoggerService.scheduleMessageRemove({
+        guildId: pageDeletedInfo.pageData.guild.guildId,
         author: interaction.user,
+        readableDate: pageDeletedInfo.pageData.readableDate,
+        channelId: pageDeletedInfo.pageData.channelId,
       });
 
       const isOnePage =
@@ -232,7 +240,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
         this.currentPage = 1;
       }
 
-      this.presets = await this.reactionsEntityRepository.find({
+      this.presets = await this.scheduledMessageEntityRepository.find({
         where: { guild: { guildId: guildId } },
         relations: ['guild'],
       });
@@ -242,7 +250,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
         await this.updateEmbedOnEmptyRecords({
           reason: 'delete',
           btnInteraction,
-          title: 'No one registered reactions',
+          title: 'No one scheduled messages',
           embed: this.embedsService.getAddEmbed(),
         });
         return Promise.resolve();
@@ -251,13 +259,7 @@ export class ReactionsPaginationService extends BasePaginationHandler<ReactionsE
       await this.updateEmbedOnBtnClick(embed, btnInteraction);
       return Promise.resolve();
     } catch (e) {
-      this.logger.error(`Reactions delete ${interaction.guildId}: ${e}`);
+      this.logger.error(`Scheduled Message Delete ${guildId}: ${e}`);
     }
-  }
-
-  private async clearReactionsCache(guildId: string) {
-    await this.cacheManager.del(
-      CACHE_KEYS.REACTIONS.key.replace('{guildId}', guildId),
-    );
   }
 }

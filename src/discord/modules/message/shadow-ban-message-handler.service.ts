@@ -17,10 +17,13 @@ export class ShadowBanMessageHandlerService {
   ) {}
 
   public async handle(message: Message) {
+    const guildId = message.guildId;
+
+    if (!guildId) return;
+
     try {
       const authorId = message.author.id;
       const channelId = message.channel.id;
-      const guildId = message.guildId;
 
       const shadowBan = await this.getShadowBanData(authorId, guildId);
 
@@ -46,12 +49,12 @@ export class ShadowBanMessageHandlerService {
           }
         } catch (e) {
           this.logger.error(
-            `Unable to delete message in guild ${message.guildId}: ${e}`,
+            `Unable to delete message in guild ${guildId}: ${e}`,
           );
         }
       }
     } catch (e) {
-      this.logger.error(`Shadow Ban Handler in guild ${message.guildId}: ${e}`);
+      this.logger.error(`Shadow Ban Handler in guild ${guildId}: ${e}`);
     }
   }
 

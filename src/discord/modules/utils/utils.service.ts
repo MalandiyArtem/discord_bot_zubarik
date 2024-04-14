@@ -25,7 +25,7 @@ export class UtilsService {
         }
         return null;
       })
-      .filter((id) => id !== null);
+      .filter((id) => id !== null) as string[];
 
     return userIds;
   }
@@ -50,7 +50,7 @@ export class UtilsService {
         }
         return null;
       })
-      .filter((id) => id !== null);
+      .filter((id) => id !== null) as string[];
 
     return channelId;
   }
@@ -76,7 +76,7 @@ export class UtilsService {
 
         return null;
       })
-      .filter((id) => id !== null);
+      .filter((id) => id !== null) as string[];
 
     return emojiIds;
   }

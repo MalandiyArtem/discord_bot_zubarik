@@ -14,6 +14,8 @@ import {
 import { ReactionsLogParams } from './types/reactions-params';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../constants/cache';
+import { ScheduleMessageParams } from './types/schedule-message-params';
+import { ScheduleRenameParams } from './types/schedule-rename-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -298,6 +300,7 @@ export class ActionLoggerService {
   }
 
   public async messageDelete(message: Message) {
+    if (!message.guild) return;
     try {
       const logChannel = await this.getLogChannel(message.guild.id);
 
@@ -340,6 +343,7 @@ export class ActionLoggerService {
     oldMessage: Message | PartialMessage,
     newMessage: Message | PartialMessage,
   ) {
+    if (!oldMessage.guild) return;
     try {
       if (oldMessage.author?.bot) return Promise.resolve();
       const logChannel = await this.getLogChannel(oldMessage.guild.id);
@@ -401,6 +405,106 @@ export class ActionLoggerService {
     }
   }
 
+  public async scheduleMessageAdd(options: ScheduleMessageParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Scheduled message has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Message has been scheduled by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Message Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async scheduleMessageRemove(options: ScheduleMessageParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Scheduled message has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Message has been removed by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Message Remove ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async scheduleRenameAdd(options: ScheduleRenameParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Scheduled rename channel has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Renaming has been scheduled by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` })
+        .addFields({
+          name: 'New channel name',
+          value: `${options.newChannelName}`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Rename Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async scheduleRenameRemove(options: ScheduleRenameParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Scheduled rename channel has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Renaming has been removed by <@${options.author?.id}>`,
+        })
+        .addFields({ name: 'Date', value: options.readableDate })
+        .addFields({ name: 'Channel name', value: `<#${options.channelId}>` })
+        .addFields({
+          name: 'New channel name',
+          value: `${options.newChannelName}`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(`Schedule Rename Add ${options.guildId}: ${e}`);
+    }
+  }
+
   private async getLogChannel(guildId: string) {
     try {
       const cacheLogChannel = await this.cacheManager.get<string>(
@@ -415,7 +519,7 @@ export class ActionLoggerService {
         where: { guildId: guildId },
       });
 
-      if (!guild.logChannelId) return;
+      if (!guild?.logChannelId) return;
 
       await this.cacheManager.set(
         CACHE_KEYS.GUILD_LOG_CHANNEL.key.replace('{guildId}', guild.guildId),

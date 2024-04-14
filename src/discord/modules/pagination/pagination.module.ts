@@ -7,14 +7,31 @@ import { ActionLoggerModule } from '../action-logger/action-logger.module';
 import { RolePaginationService } from './role/role-pagination.service';
 import { RolesEntity } from '../commands/roles/entities/roles.entity';
 import { ReactionsEntity } from '../commands/reactions/entities/reactions.entity';
+import { ScheduledMessagePaginationService } from './scheduled/scheduled-message-pagination.service';
+import { ScheduledMessageEntity } from '../commands/schedule/message/entities/scheduled-message.entity';
+import { ScheduledRenameEntity } from '../commands/schedule/rename/entities/scheduled-rename.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ShadowBanEntity, RolesEntity, ReactionsEntity]),
+    TypeOrmModule.forFeature([
+      ShadowBanEntity,
+      RolesEntity,
+      ReactionsEntity,
+      ScheduledMessageEntity,
+      ScheduledRenameEntity,
+    ]),
     EmbedsModule,
     ActionLoggerModule,
   ],
-  exports: [ShadowBanPaginationService, RolePaginationService],
-  providers: [ShadowBanPaginationService, RolePaginationService],
+  exports: [
+    ShadowBanPaginationService,
+    RolePaginationService,
+    ScheduledMessagePaginationService,
+  ],
+  providers: [
+    ShadowBanPaginationService,
+    RolePaginationService,
+    ScheduledMessagePaginationService,
+  ],
 })
 export class PaginationModule {}
