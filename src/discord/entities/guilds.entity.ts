@@ -3,6 +3,7 @@ import { ShadowBanEntity } from '../modules/commands/shadow-ban/entities/shadow-
 import { RolesEntity } from '../modules/commands/roles/entities/roles.entity';
 import { ReactionsEntity } from '../modules/commands/reactions/entities/reactions.entity';
 import { ScheduledMessageEntity } from '../modules/commands/schedule/message/entities/scheduled-message.entity';
+import { ScheduledRenameEntity } from '../modules/commands/schedule/rename/entities/scheduled-rename.entity';
 
 @Entity({ name: 'guilds' })
 export class GuildsEntity {
@@ -32,4 +33,10 @@ export class GuildsEntity {
     (scheduledMessages) => scheduledMessages.guild,
   )
   scheduledMessages: ScheduledMessageEntity[];
+
+  @OneToMany(
+    () => ScheduledRenameEntity,
+    (scheduledRenames) => scheduledRenames.guild,
+  )
+  scheduledRenames: ScheduledRenameEntity[];
 }

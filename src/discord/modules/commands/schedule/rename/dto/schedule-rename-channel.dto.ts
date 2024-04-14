@@ -76,7 +76,7 @@ export class ScheduleRenameChannelDto {
     min_value: new Date().getUTCFullYear(),
     required: false,
   })
-  year: number;
+  year?: number;
 
   @IntegerOption({
     name: 'hours',
@@ -85,7 +85,7 @@ export class ScheduleRenameChannelDto {
     max_value: 23,
     required: false,
   })
-  hours: number;
+  hours?: number;
 
   @IntegerOption({
     name: 'minutes',
@@ -94,7 +94,7 @@ export class ScheduleRenameChannelDto {
     max_value: 59,
     required: false,
   })
-  minutes: number;
+  minutes?: number;
 
   @IntegerOption({
     name: 'seconds',
@@ -103,5 +103,5 @@ export class ScheduleRenameChannelDto {
     max_value: 59,
     required: false,
   })
-  seconds: number;
+  seconds?: number;
 }
