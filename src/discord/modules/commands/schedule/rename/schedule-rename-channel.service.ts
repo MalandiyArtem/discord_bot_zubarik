@@ -10,6 +10,9 @@ import { ActionLoggerService } from '../../../action-logger/action-logger.servic
 import { IDateParams } from '../interfaces/date-params.interface';
 import { ModuleRef } from '@nestjs/core';
 import { ScheduledRenamePaginationService } from '../../../pagination/scheduled/scheduled-rename-pagination.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import * as schedule from 'node-schedule';
+import { Client, TextChannel, VoiceChannel } from 'discord.js';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -22,6 +25,7 @@ export class ScheduleRenameChannelService {
     private readonly scheduledRenameEntityRepository: Repository<ScheduledRenameEntity>,
     private readonly actionLoggerService: ActionLoggerService,
     private readonly moduleRef: ModuleRef,
+    private readonly client: Client,
   ) {}
 
   @Subcommand({
@@ -115,5 +119,64 @@ export class ScheduleRenameChannelService {
       ScheduledRenamePaginationService,
     );
     await scheduledRenamePaginationService.showList(interaction);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleRenameScheduledCron() {
+    try {
+      const currentDate = new Date();
+      currentDate.setMinutes(currentDate.getMinutes() + 1);
+
+      const utcDate = currentDate.toISOString();
+
+      const scheduledRenames = await this.scheduledRenameEntityRepository
+        .createQueryBuilder('scheduled_rename')
+        .where('scheduled_rename.date <= :date', { date: utcDate })
+        .getMany();
+
+      for (const scheduledRename of scheduledRenames) {
+        const currentDateCronUTCMilliseconds = new Date(
+          new Date().toISOString(),
+        ).getTime();
+
+        if (scheduledRename.date.getTime() <= currentDateCronUTCMilliseconds) {
+          await this.renameChannel(scheduledRename);
+          break;
+        }
+
+        schedule.scheduleJob(
+          scheduledRename.date.setSeconds(scheduledRename.date.getSeconds()),
+          async () => {
+            const currentDateCronUTCMilliseconds = new Date(
+              new Date().toISOString(),
+            ).getTime();
+            if (
+              scheduledRename.date.getTime() > currentDateCronUTCMilliseconds
+            ) {
+              await this.renameChannel(scheduledRename);
+            }
+          },
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Rename Schedule Cron: `, e);
+    }
+  }
+
+  private async renameChannel(scheduledRename: ScheduledRenameEntity) {
+    const channel =
+      (this.client.channels.cache.get(
+        scheduledRename.channelId,
+      ) as TextChannel) || VoiceChannel;
+
+    if (!channel) return;
+    await channel.setName(scheduledRename.newChannelName);
+    await this.deleteScheduledMessageFromDb(scheduledRename.scheduleRenameId);
+  }
+
+  private async deleteScheduledMessageFromDb(scheduleRenameId: string) {
+    await this.scheduledRenameEntityRepository.delete({
+      scheduleRenameId: scheduleRenameId,
+    });
   }
 }
