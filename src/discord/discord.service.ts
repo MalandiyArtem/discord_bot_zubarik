@@ -1,16 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, ContextOf, On, Once } from 'necord';
 import { GuildService } from './services/guild.service';
+import { ActivityType, Client } from 'discord.js';
 
 @Injectable()
 export class DiscordService {
   private readonly logger = new Logger(DiscordService.name);
 
-  public constructor(private guildService: GuildService) {}
+  public constructor(
+    private guildService: GuildService,
+    private readonly client: Client,
+  ) {}
 
   @Once('ready')
   public async onReady(@Context() [client]: ContextOf<'ready'>) {
     this.logger.log(`Bot logged in as ${client.user.username}`);
+    this.client.user?.setActivity('v2.0.0', { type: ActivityType.Playing });
     await this.guildService.checkOnUnregisteredGuilds();
   }
 
