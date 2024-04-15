@@ -11,6 +11,7 @@ import { ReactionsPaginationService } from '../../pagination/reactions/reactions
 import { ModuleRef } from '@nestjs/core';
 import { CACHE_KEYS } from '../../../../constants/cache';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CommandNamesEnum } from '../enums/command-names.enum';
 
 @Injectable()
 export class ReactionsService {
@@ -26,7 +27,7 @@ export class ReactionsService {
   ) {}
 
   @SlashCommand({
-    name: 'reactions-add',
+    name: CommandNamesEnum.reactionsAdd,
     description: 'Set up reactions',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -97,7 +98,7 @@ export class ReactionsService {
   }
 
   @SlashCommand({
-    name: 'reactions-list',
+    name: CommandNamesEnum.reactionsList,
     description: 'Show all reaction list',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,

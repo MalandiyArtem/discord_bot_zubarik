@@ -3,12 +3,14 @@ import { Context, ContextOf, On } from 'necord';
 import { ShadowBanMessageHandlerService } from './shadow-ban-message-handler.service';
 import { ReactionsMessageHandlerService } from './reactions-message-handler.service';
 import { ActionLoggerService } from '../action-logger/action-logger.service';
+import { IncorrectCommandUseHandlerService } from './incorrect-command-use-handler.service';
 
 @Injectable()
 export class MessageService {
   constructor(
     private shadowBanMessageHandlerService: ShadowBanMessageHandlerService,
     private reactionsMessageHandlerService: ReactionsMessageHandlerService,
+    private incorrectCommandUseHandlerService: IncorrectCommandUseHandlerService,
     private actionLoggerService: ActionLoggerService,
   ) {}
 
@@ -18,6 +20,7 @@ export class MessageService {
   ) {
     this.shadowBanMessageHandlerService.handle(message);
     this.reactionsMessageHandlerService.handle(message);
+    this.incorrectCommandUseHandlerService.handle(message);
   }
 
   @On('messageDelete')

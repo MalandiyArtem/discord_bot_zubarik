@@ -6,6 +6,7 @@ import { ReactionsEntity } from '../commands/reactions/entities/reactions.entity
 import { ShadowBanMessageHandlerService } from './shadow-ban-message-handler.service';
 import { ReactionsMessageHandlerService } from './reactions-message-handler.service';
 import { ActionLoggerModule } from '../action-logger/action-logger.module';
+import { IncorrectCommandUseHandlerService } from './incorrect-command-use-handler.service';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ActionLoggerModule } from '../action-logger/action-logger.module';
     MessageService,
     ShadowBanMessageHandlerService,
     ReactionsMessageHandlerService,
+    IncorrectCommandUseHandlerService,
   ],
 })
 export class MessageModule {}

@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../../constants/cache';
+import { CommandNamesEnum } from '../enums/command-names.enum';
 
 @Injectable()
 export class LogsChannelService {
@@ -22,7 +23,7 @@ export class LogsChannelService {
   ) {}
 
   @SlashCommand({
-    name: 'logs',
+    name: CommandNamesEnum.logs,
     description: 'Set up channel for logs (if empty disable logs)',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
