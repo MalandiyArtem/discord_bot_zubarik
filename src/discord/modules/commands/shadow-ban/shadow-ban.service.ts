@@ -11,6 +11,7 @@ import { ShadowBanPaginationService } from '../../pagination/shadow-ban/shadow-b
 import { ModuleRef } from '@nestjs/core';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../../constants/cache';
+import { CommandNamesEnum } from '../enums/command-names.enum';
 
 @Injectable()
 export class ShadowBanService {
@@ -26,7 +27,7 @@ export class ShadowBanService {
   ) {}
 
   @SlashCommand({
-    name: 'shadow-ban',
+    name: CommandNamesEnum.shadowBan,
     description: 'Shadow ban for user (every his message will be deleted)',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -94,7 +95,7 @@ export class ShadowBanService {
   }
 
   @SlashCommand({
-    name: 'shadow-ban-list',
+    name: CommandNamesEnum.shadowBanList,
     description: 'Display list of shadow bans',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,

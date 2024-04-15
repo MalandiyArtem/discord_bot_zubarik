@@ -13,6 +13,7 @@ import { RolesEntity } from './entities/roles.entity';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { RolePaginationService } from '../../pagination/role/role-pagination.service';
+import { CommandNamesEnum } from '../enums/command-names.enum';
 
 @Injectable()
 export class RolesService {
@@ -26,7 +27,7 @@ export class RolesService {
   ) {}
 
   @SlashCommand({
-    name: 'add-role',
+    name: CommandNamesEnum.roleAdd,
     description: 'Add role which will be available for users for self-picking',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -78,7 +79,7 @@ export class RolesService {
   }
 
   @SlashCommand({
-    name: 'remove-role',
+    name: CommandNamesEnum.roleRemove,
     description: 'Remove role from list for users for self-picking',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -130,7 +131,7 @@ export class RolesService {
   }
 
   @SlashCommand({
-    name: 'remove-all-roles',
+    name: CommandNamesEnum.roleRemoveAll,
     description: 'Remove all roles from list for users for self-picking',
     dmPermission: false,
     defaultMemberPermissions: PermissionFlagsBits.Administrator,
@@ -180,7 +181,7 @@ export class RolesService {
   }
 
   @SlashCommand({
-    name: 'role',
+    name: CommandNamesEnum.role,
     description: 'Get or get rid of the role',
     dmPermission: false,
   })
@@ -212,7 +213,7 @@ export class RolesService {
   }
 
   @SlashCommand({
-    name: 'role-list',
+    name: CommandNamesEnum.roleList,
     description: 'Display list of available roles',
     dmPermission: false,
   })
