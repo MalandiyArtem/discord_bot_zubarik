@@ -134,29 +134,10 @@ export class ScheduleRenameChannelService {
         .where('scheduled_rename.date <= :date', { date: utcDate })
         .getMany();
 
-      for (const scheduledRename of scheduledRenames) {
-        const currentDateCronUTCMilliseconds = new Date(
-          new Date().toISOString(),
-        ).getTime();
-
-        if (scheduledRename.date.getTime() <= currentDateCronUTCMilliseconds) {
-          await this.renameChannel(scheduledRename);
-          break;
-        }
-
-        schedule.scheduleJob(
-          scheduledRename.date.setSeconds(scheduledRename.date.getSeconds()),
-          async () => {
-            const currentDateCronUTCMilliseconds = new Date(
-              new Date().toISOString(),
-            ).getTime();
-            if (
-              scheduledRename.date.getTime() > currentDateCronUTCMilliseconds
-            ) {
-              await this.renameChannel(scheduledRename);
-            }
-          },
-        );
+      for (const scheduleRename of scheduledRenames.reverse()) {
+        schedule.scheduleJob(scheduleRename.date, async () => {
+          await this.renameChannel(scheduleRename);
+        });
       }
     } catch (e) {
       this.logger.error(`Rename Schedule Cron: `, e);
