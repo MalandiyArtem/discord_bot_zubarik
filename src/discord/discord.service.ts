@@ -15,7 +15,7 @@ export class DiscordService {
   @Once('ready')
   public async onReady(@Context() [client]: ContextOf<'ready'>) {
     this.logger.log(`Bot logged in as ${client.user.username}`);
-    this.client.user?.setActivity('v2.0.0', { type: ActivityType.Playing });
+    this.client.user?.setActivity('v2.0.1', { type: ActivityType.Playing });
     await this.guildService.checkOnUnregisteredGuilds();
   }
 

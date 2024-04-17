@@ -150,29 +150,10 @@ export class ScheduleMessageService {
         .where('scheduled_message.date <= :date', { date: utcDate })
         .getMany();
 
-      for (const scheduledMessage of scheduledMessages) {
-        const currentDateCronUTCMilliseconds = new Date(
-          new Date().toISOString(),
-        ).getTime();
-
-        if (scheduledMessage.date.getTime() <= currentDateCronUTCMilliseconds) {
+      for (const scheduledMessage of scheduledMessages.reverse()) {
+        schedule.scheduleJob(scheduledMessage.date, async () => {
           await this.sendScheduledMessage(scheduledMessage);
-          break;
-        }
-
-        schedule.scheduleJob(
-          scheduledMessage.date.setSeconds(scheduledMessage.date.getSeconds()),
-          async () => {
-            const currentDateCronUTCMilliseconds = new Date(
-              new Date().toISOString(),
-            ).getTime();
-            if (
-              scheduledMessage.date.getTime() > currentDateCronUTCMilliseconds
-            ) {
-              await this.sendScheduledMessage(scheduledMessage);
-            }
-          },
-        );
+        });
       }
     } catch (e) {
       this.logger.error(`Send Schedule Message Cron: `, e);
