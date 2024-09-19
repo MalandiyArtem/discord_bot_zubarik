@@ -87,4 +87,56 @@ export class HappyBirthdayService {
       ephemeral: true,
     });
   }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_configuration_remove,
+    description: 'Remove configuration channel for greetings',
+    dmPermission: false,
+  })
+  public async removeHappyBirthdayConfigurationChannel(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+
+      return;
+    }
+
+    const happyBirthdayConfig =
+      await this.happyBirthdayConfigurationRepository.findOne({
+        where: {
+          guild: {
+            guildId: guildId,
+          },
+        },
+      });
+
+    if (!happyBirthdayConfig || !happyBirthdayConfig.channelId) {
+      await interaction.reply({
+        content: "You didn't have configurations to remove",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await this.happyBirthdayConfigurationRepository.update(
+      {
+        configurationId: happyBirthdayConfig.configurationId,
+      },
+      {
+        channelId: null,
+      },
+    );
+
+    await interaction.reply({
+      content:
+        'You have successfully removed channel for greetings. Bot will not send greetings anymore',
+      ephemeral: true,
+    });
+  }
 }

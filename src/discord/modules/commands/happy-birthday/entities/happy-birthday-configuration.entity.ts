@@ -6,8 +6,8 @@ export class HappyBirthdayConfigurationEntity {
   @PrimaryGeneratedColumn('uuid')
   configurationId: string;
 
-  @Column({ nullable: true })
-  channelId: string;
+  @Column({ type: 'varchar', nullable: true })
+  channelId: string | null;
 
   @Column({ type: 'time without time zone', nullable: false })
   time: string;
