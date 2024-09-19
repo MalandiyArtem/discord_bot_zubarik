@@ -8,6 +8,7 @@ import { ActionLoggerModule } from '../../action-logger/action-logger.module';
 import { ScheduledRenameEntity } from './rename/entities/scheduled-rename.entity';
 import { ScheduleRenameChannelService } from './rename/schedule-rename-channel.service';
 import { EmbedsModule } from '../../embeds/embeds.module';
+import { UtilsModule } from '../../utils/utils.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EmbedsModule } from '../../embeds/embeds.module';
     TenorGifModule,
     ActionLoggerModule,
     EmbedsModule,
+    UtilsModule,
   ],
   exports: [],
   providers: [

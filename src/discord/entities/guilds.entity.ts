@@ -1,9 +1,17 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryColumn,
+} from 'typeorm';
 import { ShadowBanEntity } from '../modules/commands/shadow-ban/entities/shadow-ban.entity';
 import { RolesEntity } from '../modules/commands/roles/entities/roles.entity';
 import { ReactionsEntity } from '../modules/commands/reactions/entities/reactions.entity';
 import { ScheduledMessageEntity } from '../modules/commands/schedule/message/entities/scheduled-message.entity';
 import { ScheduledRenameEntity } from '../modules/commands/schedule/rename/entities/scheduled-rename.entity';
+import { HappyBirthdayConfigurationEntity } from '../modules/commands/happy-birthday/entities/happy-birthday-configuration.entity';
 
 @Entity({ name: 'guilds' })
 export class GuildsEntity {
@@ -39,4 +47,8 @@ export class GuildsEntity {
     (scheduledRenames) => scheduledRenames.guild,
   )
   scheduledRenames: ScheduledRenameEntity[];
+
+  @OneToOne(() => HappyBirthdayConfigurationEntity)
+  @JoinColumn({ name: 'happy_birthday_configuration_id' })
+  happyBirthdayConfiguration: HappyBirthdayConfigurationEntity;
 }

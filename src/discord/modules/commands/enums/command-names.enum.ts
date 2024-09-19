@@ -11,4 +11,6 @@ export enum CommandNamesEnum {
   schedule = 'schedule',
   shadowBan = 'shadow-ban',
   shadowBanList = 'shadow-ban-list',
+  happyBirthday = 'happy-birthday',
+  happyBirthday_configuration_add = 'config-add',
 }

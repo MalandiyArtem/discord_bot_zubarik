@@ -81,6 +81,10 @@ export class UtilsService {
     return emojiIds;
   }
 
+  public getStringFormattedTime(time: number): string {
+    return time < 10 ? String(time).padStart(2, '0') : String(time);
+  }
+
   private isChannel(channel: string): boolean {
     const regex = /^<#([0-9]+)>$/i;
     return regex.test(channel);
