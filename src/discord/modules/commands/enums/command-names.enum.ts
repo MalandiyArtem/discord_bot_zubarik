@@ -14,4 +14,5 @@ export enum CommandNamesEnum {
   happyBirthday = 'happy-birthday',
   happyBirthday_configuration_add = 'config-add',
   happyBirthday_configuration_remove = 'config-remove',
+  happyBirthday_add = 'add',
 }

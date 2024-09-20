@@ -1,5 +1,12 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { GuildsEntity } from '../../../../entities/guilds.entity';
+import { HappyBirthdayEntity } from './happy-birthday.entity';
 
 @Entity({ name: 'happy_birthday_configuration' })
 export class HappyBirthdayConfigurationEntity {
@@ -17,4 +24,10 @@ export class HappyBirthdayConfigurationEntity {
 
   @OneToOne(() => GuildsEntity, (guild) => guild.happyBirthdayConfiguration)
   guild: GuildsEntity;
+
+  @OneToMany(
+    () => HappyBirthdayEntity,
+    (happyBirthday) => happyBirthday.happyBirthdayConfiguration,
+  )
+  happyBirthdays: HappyBirthdayEntity[];
 }

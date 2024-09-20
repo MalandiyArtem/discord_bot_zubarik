@@ -6,8 +6,10 @@ import { HappyBirthdayConfigurationEntity } from './entities/happy-birthday-conf
 import { Context, Opts, SlashCommandContext, Subcommand } from 'necord';
 import { CommandNamesEnum } from '../enums/command-names.enum';
 import { HappyBirthdayConfigurationDto } from './dto/happy-birthday-configuration.dto';
-import { GuildsEntity } from '../../../entities/guilds.entity';
 import { UtilsService } from '../../utils/utils.service';
+import { HappyBirthdayAddDto } from './dto/happy-birthday-add.dto';
+import { HappyBirthdayEntity } from './entities/happy-birthday.entity';
+import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -17,9 +19,10 @@ export class HappyBirthdayService {
   constructor(
     @InjectRepository(HappyBirthdayConfigurationEntity)
     private readonly happyBirthdayConfigurationRepository: Repository<HappyBirthdayConfigurationEntity>,
-    @InjectRepository(GuildsEntity)
-    private readonly guildsRepository: Repository<GuildsEntity>,
+    @InjectRepository(HappyBirthdayEntity)
+    private readonly happyBirthdayRepository: Repository<HappyBirthdayEntity>,
     private readonly utilService: UtilsService,
+    private readonly happyBirthdayUtilService: HappyBirthdayUtilsService,
   ) {}
 
   @Subcommand({
@@ -138,5 +141,81 @@ export class HappyBirthdayService {
         'You have successfully removed channel for greetings. Bot will not send greetings anymore',
       ephemeral: true,
     });
+  }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_add,
+    description: 'Add birthday',
+    dmPermission: false,
+  })
+  public async addBirthday(
+    @Context() [interaction]: SlashCommandContext,
+    @Opts() dto: HappyBirthdayAddDto,
+  ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+
+      return;
+    }
+
+    const userId = dto.user.id;
+    const username = dto.username;
+    const day = dto.day;
+    const month = dto.month;
+    const formattedDate = `${this.utilService.getStringFormattedTime(day)}.${this.utilService.getStringFormattedTime(month)}`;
+
+    const isDateValid = this.happyBirthdayUtilService.isBirthdayDateValid(
+      day,
+      month,
+    );
+
+    if (!isDateValid) {
+      await interaction.reply({
+        content: 'Date is not valid',
+        ephemeral: true,
+      });
+
+      return;
+    }
+
+    const happyBirthdayConfig =
+      await this.findOrCreateHappyBirthdayConfig(guildId);
+
+    await this.happyBirthdayRepository.save({
+      happyBirthdayConfiguration: {
+        configurationId: happyBirthdayConfig.configurationId,
+      },
+      userId: userId,
+      username: username,
+      date: formattedDate,
+    });
+
+    await interaction.reply({
+      content: `You have successfully added birthday of ${username} to the list.`,
+    });
+  }
+
+  private async findOrCreateHappyBirthdayConfig(guildId: string) {
+    let happyBirthdayConfig =
+      await this.happyBirthdayConfigurationRepository.findOne({
+        where: { guild: { guildId } },
+      });
+
+    if (!happyBirthdayConfig) {
+      happyBirthdayConfig =
+        await this.happyBirthdayConfigurationRepository.save({
+          channelId: null,
+          timezone: '0',
+          time: '00:00:00',
+          guild: { guildId },
+        });
+    }
+
+    return happyBirthdayConfig;
   }
 }
