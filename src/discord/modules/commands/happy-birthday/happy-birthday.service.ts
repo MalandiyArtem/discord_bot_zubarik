@@ -197,7 +197,7 @@ export class HappyBirthdayService {
     });
 
     await interaction.reply({
-      content: `You have successfully added birthday of ${username} to the list.`,
+      content: `You have successfully added birthday of **${username}** to the list.`,
     });
   }
 
@@ -243,6 +243,39 @@ export class HappyBirthdayService {
 
     await interaction.reply({
       content: `A record of **${happyBirthday.username}** has been removed`,
+      ephemeral: true,
+    });
+  }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_remove_all,
+    description: 'Remove all birthday',
+    dmPermission: false,
+  })
+  public async removeAllBirthday(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const happyBirthdayConfig =
+      await this.findOrCreateHappyBirthdayConfig(guildId);
+
+    await this.happyBirthdayRepository.delete({
+      happyBirthdayConfiguration: {
+        configurationId: happyBirthdayConfig.configurationId,
+      },
+    });
+
+    await interaction.reply({
+      content: `All birthdays have been successfully removed`,
       ephemeral: true,
     });
   }
