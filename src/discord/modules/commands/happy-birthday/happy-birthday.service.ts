@@ -10,6 +10,7 @@ import { UtilsService } from '../../utils/utils.service';
 import { HappyBirthdayAddDto } from './dto/happy-birthday-add.dto';
 import { HappyBirthdayEntity } from './entities/happy-birthday.entity';
 import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
+import { HappyBirthdayRemoveDto } from './dto/happy-birthday-remove.dto';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -197,6 +198,52 @@ export class HappyBirthdayService {
 
     await interaction.reply({
       content: `You have successfully added birthday of ${username} to the list.`,
+    });
+  }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_remove,
+    description: 'Remove birthday',
+    dmPermission: false,
+  })
+  public async removeBirthday(
+    @Context() [interaction]: SlashCommandContext,
+    @Opts() dto: HappyBirthdayRemoveDto,
+  ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+
+      return;
+    }
+
+    const birthdayId = Number.isNaN(Number(dto.id)) ? -1 : Number(dto.id);
+
+    const happyBirthday = await this.happyBirthdayRepository.findOne({
+      where: {
+        happyBirthdayId: birthdayId,
+      },
+    });
+
+    if (!happyBirthday) {
+      await interaction.reply({
+        content: `A record with ID **${dto.id}** was not found`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await this.happyBirthdayRepository.delete({
+      happyBirthdayId: birthdayId,
+    });
+
+    await interaction.reply({
+      content: `A record of **${happyBirthday.username}** has been removed`,
+      ephemeral: true,
     });
   }
 
