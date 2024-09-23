@@ -46,109 +46,116 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
-      await interaction.reply({
-        content: 'Guild id can not be found. Try again',
-        ephemeral: true,
-      });
-
-      return;
-    }
-
-    const happyBirthdayConfig =
-      await this.happyBirthdayConfigurationRepository.findOne({
-        where: {
-          guild: {
-            guildId: guildId,
-          },
-        },
-      });
-
-    const channelId = dto.channel.id;
-    const timeZone = dto.timezone.toString();
-    const hours = this.utilService.getStringFormattedTime(dto.hours || 0);
-    const minutes = this.utilService.getStringFormattedTime(dto.minutes || 0);
-    const seconds = this.utilService.getStringFormattedTime(dto.seconds || 0);
-    const timeGMT0 = this.happyBirthdayUtilService.convertToGMT0(
-      `${hours}:${minutes}:${seconds}`,
-      Number(timeZone),
-    );
-    const timeWithTimezone = `${hours}:${minutes}:${seconds}`;
-
-    if (happyBirthdayConfig) {
-      await this.happyBirthdayConfigurationRepository.update(
-        { configurationId: happyBirthdayConfig.configurationId },
-        {
-          channelId: channelId,
-          timezone: timeZone,
-          timeGMT0: timeGMT0,
-          timeWithTimezone: timeWithTimezone,
-        },
-      );
-
-      const updatedConfig =
-        await this.happyBirthdayConfigurationRepository.findOne({
-          where: { configurationId: happyBirthdayConfig.configurationId },
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
         });
 
-      const allBirthdays = await this.happyBirthdayRepository.find({
-        where: {
-          happyBirthdayConfiguration: {
-            configurationId: updatedConfig?.configurationId,
-          },
-        },
-      });
-
-      for (const birthday of allBirthdays) {
-        const [hours, minutes, seconds] = updatedConfig?.timeWithTimezone.split(
-          ':',
-        ) || ['00', '00', '00'];
-        const [day, month] = birthday.shortDate.split('.').map(Number);
-
-        const dateParams: IDateParams = {
-          day: day,
-          month: month,
-          year: new Date().getUTCFullYear(),
-          hours: Number(hours) || 0,
-          minutes: Number(minutes) || 0,
-          seconds: Number(seconds) || 0,
-        };
-
-        const gmtDate = this.utilService.getGmtDate(
-          dateParams,
-          Number(happyBirthdayConfig.timezone),
-        );
-
-        await this.happyBirthdayRepository.update(
-          {
-            happyBirthdayId: birthday.happyBirthdayId,
-          },
-          {
-            dateGMT0: gmtDate,
-          },
-        );
+        return;
       }
 
+      const happyBirthdayConfig =
+        await this.happyBirthdayConfigurationRepository.findOne({
+          where: {
+            guild: {
+              guildId: guildId,
+            },
+          },
+        });
+
+      const channelId = dto.channel.id;
+      const timeZone = dto.timezone.toString();
+      const hours = this.utilService.getStringFormattedTime(dto.hours || 0);
+      const minutes = this.utilService.getStringFormattedTime(dto.minutes || 0);
+      const seconds = this.utilService.getStringFormattedTime(dto.seconds || 0);
+      const timeGMT0 = this.happyBirthdayUtilService.convertToGMT0(
+        `${hours}:${minutes}:${seconds}`,
+        Number(timeZone),
+      );
+      const timeWithTimezone = `${hours}:${minutes}:${seconds}`;
+
+      if (happyBirthdayConfig) {
+        await this.happyBirthdayConfigurationRepository.update(
+          { configurationId: happyBirthdayConfig.configurationId },
+          {
+            channelId: channelId,
+            timezone: timeZone,
+            timeGMT0: timeGMT0,
+            timeWithTimezone: timeWithTimezone,
+          },
+        );
+
+        const updatedConfig =
+          await this.happyBirthdayConfigurationRepository.findOne({
+            where: { configurationId: happyBirthdayConfig.configurationId },
+          });
+
+        const allBirthdays = await this.happyBirthdayRepository.find({
+          where: {
+            happyBirthdayConfiguration: {
+              configurationId: updatedConfig?.configurationId,
+            },
+          },
+        });
+
+        for (const birthday of allBirthdays) {
+          const [hours, minutes, seconds] =
+            updatedConfig?.timeWithTimezone.split(':') || ['00', '00', '00'];
+          const [day, month] = birthday.shortDate.split('.').map(Number);
+
+          const dateParams: IDateParams = {
+            day: day,
+            month: month,
+            year: new Date().getUTCFullYear(),
+            hours: Number(hours) || 0,
+            minutes: Number(minutes) || 0,
+            seconds: Number(seconds) || 0,
+          };
+
+          const gmtDate = this.utilService.getGmtDate(
+            dateParams,
+            Number(happyBirthdayConfig.timezone),
+          );
+
+          await this.happyBirthdayRepository.update(
+            {
+              happyBirthdayId: birthday.happyBirthdayId,
+            },
+            {
+              dateGMT0: gmtDate,
+            },
+          );
+        }
+
+        await interaction.reply({
+          content: 'Configuration has been successfully updated',
+          ephemeral: true,
+        });
+        return;
+      }
+
+      await this.happyBirthdayConfigurationRepository.save({
+        channelId: channelId,
+        timezone: timeZone,
+        timeGMT0: timeGMT0,
+        timeWithTimezone: timeWithTimezone,
+        guild: {
+          guildId: guildId,
+        },
+      });
       await interaction.reply({
-        content: 'Configuration has been successfully updated',
+        content: 'Configuration has been successfully created',
         ephemeral: true,
       });
-      return;
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while setting up happy birthday configuration. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Set up happy birthday configuration ${guildId}: ${e}`);
     }
-
-    await this.happyBirthdayConfigurationRepository.save({
-      channelId: channelId,
-      timezone: timeZone,
-      timeGMT0: timeGMT0,
-      timeWithTimezone: timeWithTimezone,
-      guild: {
-        guildId: guildId,
-      },
-    });
-    await interaction.reply({
-      content: 'Configuration has been successfully created',
-      ephemeral: true,
-    });
   }
 
   @Subcommand({
@@ -161,46 +168,54 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
-      await interaction.reply({
-        content: 'Guild id can not be found. Try again',
-        ephemeral: true,
-      });
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
+        });
 
-      return;
-    }
+        return;
+      }
 
-    const happyBirthdayConfig =
-      await this.happyBirthdayConfigurationRepository.findOne({
-        where: {
-          guild: {
-            guildId: guildId,
+      const happyBirthdayConfig =
+        await this.happyBirthdayConfigurationRepository.findOne({
+          where: {
+            guild: {
+              guildId: guildId,
+            },
           },
-        },
-      });
+        });
 
-    if (!happyBirthdayConfig || !happyBirthdayConfig.channelId) {
+      if (!happyBirthdayConfig || !happyBirthdayConfig.channelId) {
+        await interaction.reply({
+          content: "You didn't have configurations to remove",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      await this.happyBirthdayConfigurationRepository.update(
+        {
+          configurationId: happyBirthdayConfig.configurationId,
+        },
+        {
+          channelId: null,
+        },
+      );
+
       await interaction.reply({
-        content: "You didn't have configurations to remove",
+        content:
+          'You have successfully removed channel for greetings. Bot will not send greetings anymore',
         ephemeral: true,
       });
-      return;
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while removing happy birthday configuration. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Remove happy birthday configuration ${guildId}: ${e}`);
     }
-
-    await this.happyBirthdayConfigurationRepository.update(
-      {
-        configurationId: happyBirthdayConfig.configurationId,
-      },
-      {
-        channelId: null,
-      },
-    );
-
-    await interaction.reply({
-      content:
-        'You have successfully removed channel for greetings. Bot will not send greetings anymore',
-      ephemeral: true,
-    });
   }
 
   @Subcommand({
@@ -214,69 +229,77 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
-      await interaction.reply({
-        content: 'Guild id can not be found. Try again',
-        ephemeral: true,
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
+        });
+
+        return;
+      }
+
+      const userId = dto.user.id;
+      const username = dto.username;
+      const day = dto.day;
+      const month = dto.month;
+
+      const isDateValid = this.happyBirthdayUtilService.isBirthdayDateValid(
+        day,
+        month,
+      );
+
+      if (!isDateValid) {
+        await interaction.reply({
+          content: 'Date is not valid',
+          ephemeral: true,
+        });
+
+        return;
+      }
+
+      const happyBirthdayConfig =
+        await this.findOrCreateHappyBirthdayConfig(guildId);
+
+      const [hours, minutes, seconds] =
+        happyBirthdayConfig.timeWithTimezone.split(':');
+
+      const dateParams: IDateParams = {
+        day: day,
+        month: month,
+        year: new Date().getUTCFullYear(),
+        hours: Number(hours) || 0,
+        minutes: Number(minutes) || 0,
+        seconds: Number(seconds) || 0,
+      };
+
+      const gmtDate = this.utilService.getGmtDate(
+        dateParams,
+        Number(happyBirthdayConfig.timezone),
+      );
+      const readableDate = `${this.utilService.getReadableDate(dateParams, 'date-without-year')}`;
+
+      await this.happyBirthdayRepository.save({
+        happyBirthdayConfiguration: {
+          configurationId: happyBirthdayConfig.configurationId,
+        },
+        userId: userId,
+        username: username,
+        dateGMT0: gmtDate,
+        shortDate: readableDate,
       });
 
-      return;
-    }
-
-    const userId = dto.user.id;
-    const username = dto.username;
-    const day = dto.day;
-    const month = dto.month;
-
-    const isDateValid = this.happyBirthdayUtilService.isBirthdayDateValid(
-      day,
-      month,
-    );
-
-    if (!isDateValid) {
       await interaction.reply({
-        content: 'Date is not valid',
+        content: `You have successfully added birthday of **${username}** to the list.`,
         ephemeral: true,
       });
-
-      return;
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while adding happy birthday. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Add happy birthday ${guildId}: ${e}`);
     }
-
-    const happyBirthdayConfig =
-      await this.findOrCreateHappyBirthdayConfig(guildId);
-
-    const [hours, minutes, seconds] =
-      happyBirthdayConfig.timeWithTimezone.split(':');
-
-    const dateParams: IDateParams = {
-      day: day,
-      month: month,
-      year: new Date().getUTCFullYear(),
-      hours: Number(hours) || 0,
-      minutes: Number(minutes) || 0,
-      seconds: Number(seconds) || 0,
-    };
-
-    const gmtDate = this.utilService.getGmtDate(
-      dateParams,
-      Number(happyBirthdayConfig.timezone),
-    );
-    const readableDate = `${this.utilService.getReadableDate(dateParams, 'date-without-year')}`;
-
-    await this.happyBirthdayRepository.save({
-      happyBirthdayConfiguration: {
-        configurationId: happyBirthdayConfig.configurationId,
-      },
-      userId: userId,
-      username: username,
-      dateGMT0: gmtDate,
-      shortDate: readableDate,
-    });
-
-    await interaction.reply({
-      content: `You have successfully added birthday of **${username}** to the list.`,
-      ephemeral: true,
-    });
   }
 
   @Subcommand({
@@ -290,39 +313,47 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
-      await interaction.reply({
-        content: 'Guild id can not be found. Try again',
-        ephemeral: true,
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
+        });
+
+        return;
+      }
+
+      const birthdayId = Number.isNaN(Number(dto.id)) ? -1 : Number(dto.id);
+
+      const happyBirthday = await this.happyBirthdayRepository.findOne({
+        where: {
+          happyBirthdayId: birthdayId,
+        },
       });
 
-      return;
-    }
+      if (!happyBirthday) {
+        await interaction.reply({
+          content: `A record with ID **${dto.id}** was not found`,
+          ephemeral: true,
+        });
+        return;
+      }
 
-    const birthdayId = Number.isNaN(Number(dto.id)) ? -1 : Number(dto.id);
-
-    const happyBirthday = await this.happyBirthdayRepository.findOne({
-      where: {
+      await this.happyBirthdayRepository.delete({
         happyBirthdayId: birthdayId,
-      },
-    });
+      });
 
-    if (!happyBirthday) {
       await interaction.reply({
-        content: `A record with ID **${dto.id}** was not found`,
+        content: `A record of **${happyBirthday.username}** has been removed`,
         ephemeral: true,
       });
-      return;
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while removing happy birthday. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Remove happy birthday ${guildId}: ${e}`);
     }
-
-    await this.happyBirthdayRepository.delete({
-      happyBirthdayId: birthdayId,
-    });
-
-    await interaction.reply({
-      content: `A record of **${happyBirthday.username}** has been removed`,
-      ephemeral: true,
-    });
   }
 
   @Subcommand({
@@ -335,27 +366,35 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const happyBirthdayConfig =
+        await this.findOrCreateHappyBirthdayConfig(guildId);
+
+      await this.happyBirthdayRepository.delete({
+        happyBirthdayConfiguration: {
+          configurationId: happyBirthdayConfig.configurationId,
+        },
+      });
+
       await interaction.reply({
-        content: 'Guild id can not be found. Try again',
+        content: `All birthdays have been successfully removed`,
         ephemeral: true,
       });
-      return;
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while removing all happy birthday. Please try again or contact support`,
+        ephemeral: true,
+      });
+      this.logger.error(`Remove all happy birthday ${guildId}: ${e}`);
     }
-
-    const happyBirthdayConfig =
-      await this.findOrCreateHappyBirthdayConfig(guildId);
-
-    await this.happyBirthdayRepository.delete({
-      happyBirthdayConfiguration: {
-        configurationId: happyBirthdayConfig.configurationId,
-      },
-    });
-
-    await interaction.reply({
-      content: `All birthdays have been successfully removed`,
-      ephemeral: true,
-    });
   }
 
   @Subcommand({
@@ -368,39 +407,47 @@ export class HappyBirthdayService {
   ) {
     const guildId = interaction.guildId;
 
-    if (!guildId) {
+    try {
+      if (!guildId) {
+        await interaction.reply({
+          content: 'Guild id can not be found. Try again',
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const happyBirthdayConfig =
+        await this.findOrCreateHappyBirthdayConfig(guildId);
+
+      const embed = this.embedsService.getAddEmbed();
+      embed
+        .setTitle('Information about happy birthday configuration')
+        .addFields({
+          name: 'Channel',
+          value: `<#${happyBirthdayConfig.channelId}>`,
+        })
+        .addFields({
+          name: `Time (timezone ${Number(happyBirthdayConfig.timezone) < 0 ? `-${happyBirthdayConfig.timezone}` : `+${happyBirthdayConfig.timezone}`})`,
+          value: happyBirthdayConfig.timeWithTimezone,
+          inline: true,
+        })
+        .addFields({
+          name: 'Time (GMT 0)',
+          value: happyBirthdayConfig.timeGMT0,
+          inline: true,
+        });
+
       await interaction.reply({
-        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+        embeds: [embed],
+      });
+    } catch (e) {
+      await interaction.reply({
+        content: `Something went wrong while showing happy birthday configuration. Please try again or contact support`,
         ephemeral: true,
       });
-      return;
+      this.logger.error(`Show happy birthday configuration ${guildId}: ${e}`);
     }
-
-    const happyBirthdayConfig =
-      await this.findOrCreateHappyBirthdayConfig(guildId);
-
-    const embed = this.embedsService.getAddEmbed();
-    embed
-      .setTitle('Information about happy birthday configuration')
-      .addFields({
-        name: 'Channel',
-        value: `<#${happyBirthdayConfig.channelId}>`,
-      })
-      .addFields({
-        name: `Time (timezone ${Number(happyBirthdayConfig.timezone) < 0 ? `-${happyBirthdayConfig.timezone}` : `+${happyBirthdayConfig.timezone}`})`,
-        value: happyBirthdayConfig.timeWithTimezone,
-        inline: true,
-      })
-      .addFields({
-        name: 'Time (GMT 0)',
-        value: happyBirthdayConfig.timeGMT0,
-        inline: true,
-      });
-
-    await interaction.reply({
-      ephemeral: true,
-      embeds: [embed],
-    });
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
