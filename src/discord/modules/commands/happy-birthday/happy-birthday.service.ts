@@ -13,6 +13,9 @@ import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
 import { HappyBirthdayRemoveDto } from './dto/happy-birthday-remove.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { IDateParams } from '../schedule/interfaces/date-params.interface';
+import * as schedule from 'node-schedule';
+import { Client, TextChannel } from 'discord.js';
+import { TenorGifService } from '../../tenor-gif/tenor-gif.service';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -26,6 +29,8 @@ export class HappyBirthdayService {
     private readonly happyBirthdayRepository: Repository<HappyBirthdayEntity>,
     private readonly utilService: UtilsService,
     private readonly happyBirthdayUtilService: HappyBirthdayUtilsService,
+    private readonly client: Client,
+    private readonly tenorGifService: TenorGifService,
   ) {}
 
   @Subcommand({
@@ -268,6 +273,7 @@ export class HappyBirthdayService {
 
     await interaction.reply({
       content: `You have successfully added birthday of **${username}** to the list.`,
+      ephemeral: true,
     });
   }
 
@@ -351,7 +357,65 @@ export class HappyBirthdayService {
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
-  async handleSendHappyBirthdayCron() {}
+  async handleSendHappyBirthdayCron() {
+    try {
+      const currentDate = new Date();
+      currentDate.setMinutes(currentDate.getMinutes() + 1);
+
+      const utcDate = currentDate.toISOString();
+
+      const utcDateMinusOneMinute = new Date(currentDate);
+      utcDateMinusOneMinute.setMinutes(utcDateMinusOneMinute.getMinutes() - 1);
+      const utcDateMinusOneMinuteISOString =
+        utcDateMinusOneMinute.toISOString();
+
+      const greetingsToBeSent = await this.happyBirthdayRepository
+        .createQueryBuilder('birthday')
+        .leftJoinAndSelect(
+          'birthday.happyBirthdayConfiguration',
+          'configuration',
+        )
+        .where('birthday.dateGMT0 <= :date', { date: utcDate })
+        .andWhere('birthday.dateGMT0 > :dateMinusOne', {
+          dateMinusOne: utcDateMinusOneMinuteISOString,
+        })
+        .getMany();
+
+      if (greetingsToBeSent.length === 0) return;
+
+      const channelId =
+        greetingsToBeSent[0].happyBirthdayConfiguration.channelId;
+
+      if (!channelId) return;
+
+      const channel = this.client.channels.cache.get(channelId) as TextChannel;
+
+      if (!channel) return;
+
+      schedule.scheduleJob(greetingsToBeSent[0].dateGMT0, async () => {
+        await this.sendGreetings(greetingsToBeSent, channel);
+      });
+    } catch (e) {
+      this.logger.error(`Send Greetings Cron: `, e);
+    }
+  }
+
+  private async sendGreetings(
+    greetings: HappyBirthdayEntity[],
+    channel: TextChannel,
+  ) {
+    const gifUrl = await this.tenorGifService.getRandomGif('Happy birthday');
+
+    const greetingsText = greetings
+      .map((birthday) => `## Happy birthday <@${birthday.userId}>`)
+      .join('\n');
+
+    await channel.send({ content: greetingsText });
+
+    if (gifUrl) {
+      await channel.send({ content: gifUrl });
+    }
+  }
 
   private async findOrCreateHappyBirthdayConfig(guildId: string) {
     let happyBirthdayConfig =

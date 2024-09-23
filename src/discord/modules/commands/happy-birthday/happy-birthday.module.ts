@@ -6,6 +6,7 @@ import { HappyBirthdayConfigurationEntity } from './entities/happy-birthday-conf
 import { UtilsModule } from '../../utils/utils.module';
 import { HappyBirthdayEntity } from './entities/happy-birthday.entity';
 import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
+import { TenorGifModule } from '../../tenor-gif/tenor-gif.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
     ]),
     ActionLoggerModule,
     UtilsModule,
+    TenorGifModule,
   ],
   providers: [HappyBirthdayService, HappyBirthdayUtilsService],
 })
