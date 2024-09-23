@@ -12,7 +12,7 @@ export enum CommandNamesEnum {
   shadowBan = 'shadow-ban',
   shadowBanList = 'shadow-ban-list',
   happyBirthday = 'happy-birthday',
-  happyBirthday_configuration_add = 'config-add',
+  happyBirthday_configuration_add = 'config',
   happyBirthday_configuration_remove = 'config-remove',
   happyBirthday_add = 'add',
   happyBirthday_remove = 'remove',

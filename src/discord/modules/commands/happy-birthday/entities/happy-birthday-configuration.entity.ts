@@ -17,7 +17,10 @@ export class HappyBirthdayConfigurationEntity {
   channelId: string | null;
 
   @Column({ type: 'time without time zone', nullable: false })
-  time: string;
+  timeWithTimezone: string;
+
+  @Column({ type: 'time without time zone', nullable: false })
+  timeGMT0: string;
 
   @Column({ nullable: false })
   timezone: string;

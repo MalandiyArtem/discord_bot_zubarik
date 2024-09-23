@@ -12,8 +12,11 @@ export class HappyBirthdayEntity {
   @Column()
   username: string;
 
+  @Column({ type: 'timestamp with time zone' })
+  dateGMT0: Date;
+
   @Column()
-  date: string;
+  shortDate: string;
 
   @ManyToOne(
     () => HappyBirthdayConfigurationEntity,

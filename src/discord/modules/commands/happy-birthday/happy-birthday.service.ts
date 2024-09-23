@@ -11,6 +11,8 @@ import { HappyBirthdayAddDto } from './dto/happy-birthday-add.dto';
 import { HappyBirthdayEntity } from './entities/happy-birthday.entity';
 import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
 import { HappyBirthdayRemoveDto } from './dto/happy-birthday-remove.dto';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { IDateParams } from '../schedule/interfaces/date-params.interface';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -60,7 +62,11 @@ export class HappyBirthdayService {
     const hours = this.utilService.getStringFormattedTime(dto.hours || 0);
     const minutes = this.utilService.getStringFormattedTime(dto.minutes || 0);
     const seconds = this.utilService.getStringFormattedTime(dto.seconds || 0);
-    const time = `${hours}:${minutes}:${seconds}`;
+    const timeGMT0 = this.happyBirthdayUtilService.convertToGMT0(
+      `${hours}:${minutes}:${seconds}`,
+      Number(timeZone),
+    );
+    const timeWithTimezone = `${hours}:${minutes}:${seconds}`;
 
     if (happyBirthdayConfig) {
       await this.happyBirthdayConfigurationRepository.update(
@@ -68,9 +74,54 @@ export class HappyBirthdayService {
         {
           channelId: channelId,
           timezone: timeZone,
-          time: time,
+          timeGMT0: timeGMT0,
+          timeWithTimezone: timeWithTimezone,
         },
       );
+
+      const updatedConfig =
+        await this.happyBirthdayConfigurationRepository.findOne({
+          where: { configurationId: happyBirthdayConfig.configurationId },
+        });
+
+      const allBirthdays = await this.happyBirthdayRepository.find({
+        where: {
+          happyBirthdayConfiguration: {
+            configurationId: updatedConfig?.configurationId,
+          },
+        },
+      });
+
+      for (const birthday of allBirthdays) {
+        const [hours, minutes, seconds] = updatedConfig?.timeWithTimezone.split(
+          ':',
+        ) || ['00', '00', '00'];
+        const [day, month] = birthday.shortDate.split('.').map(Number);
+
+        const dateParams: IDateParams = {
+          day: day,
+          month: month,
+          year: new Date().getUTCFullYear(),
+          hours: Number(hours) || 0,
+          minutes: Number(minutes) || 0,
+          seconds: Number(seconds) || 0,
+        };
+
+        const gmtDate = this.utilService.getGmtDate(
+          dateParams,
+          Number(happyBirthdayConfig.timezone),
+        );
+
+        await this.happyBirthdayRepository.update(
+          {
+            happyBirthdayId: birthday.happyBirthdayId,
+          },
+          {
+            dateGMT0: gmtDate,
+          },
+        );
+      }
+
       await interaction.reply({
         content: 'Configuration has been successfully updated',
         ephemeral: true,
@@ -81,7 +132,8 @@ export class HappyBirthdayService {
     await this.happyBirthdayConfigurationRepository.save({
       channelId: channelId,
       timezone: timeZone,
-      time: time,
+      timeGMT0: timeGMT0,
+      timeWithTimezone: timeWithTimezone,
       guild: {
         guildId: guildId,
       },
@@ -168,7 +220,6 @@ export class HappyBirthdayService {
     const username = dto.username;
     const day = dto.day;
     const month = dto.month;
-    const formattedDate = `${this.utilService.getStringFormattedTime(day)}.${this.utilService.getStringFormattedTime(month)}`;
 
     const isDateValid = this.happyBirthdayUtilService.isBirthdayDateValid(
       day,
@@ -187,13 +238,32 @@ export class HappyBirthdayService {
     const happyBirthdayConfig =
       await this.findOrCreateHappyBirthdayConfig(guildId);
 
+    const [hours, minutes, seconds] =
+      happyBirthdayConfig.timeWithTimezone.split(':');
+
+    const dateParams: IDateParams = {
+      day: day,
+      month: month,
+      year: new Date().getUTCFullYear(),
+      hours: Number(hours) || 0,
+      minutes: Number(minutes) || 0,
+      seconds: Number(seconds) || 0,
+    };
+
+    const gmtDate = this.utilService.getGmtDate(
+      dateParams,
+      Number(happyBirthdayConfig.timezone),
+    );
+    const readableDate = `${this.utilService.getReadableDate(dateParams, 'date-without-year')}`;
+
     await this.happyBirthdayRepository.save({
       happyBirthdayConfiguration: {
         configurationId: happyBirthdayConfig.configurationId,
       },
       userId: userId,
       username: username,
-      date: formattedDate,
+      dateGMT0: gmtDate,
+      shortDate: readableDate,
     });
 
     await interaction.reply({
@@ -279,6 +349,9 @@ export class HappyBirthdayService {
       ephemeral: true,
     });
   }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleSendHappyBirthdayCron() {}
 
   private async findOrCreateHappyBirthdayConfig(guildId: string) {
     let happyBirthdayConfig =

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ScheduleMessageService } from './message/schedule-message.service';
-import { ScheduleUtilsService } from './schedule-utils.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduledMessageEntity } from './message/entities/scheduled-message.entity';
 import { TenorGifModule } from '../../tenor-gif/tenor-gif.module';
@@ -19,10 +18,6 @@ import { UtilsModule } from '../../utils/utils.module';
     UtilsModule,
   ],
   exports: [],
-  providers: [
-    ScheduleMessageService,
-    ScheduleRenameChannelService,
-    ScheduleUtilsService,
-  ],
+  providers: [ScheduleMessageService, ScheduleRenameChannelService],
 })
 export class ScheduleModule {}
