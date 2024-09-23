@@ -17,6 +17,7 @@ import * as schedule from 'node-schedule';
 import { Client, TextChannel } from 'discord.js';
 import { TenorGifService } from '../../tenor-gif/tenor-gif.service';
 import { EmbedsService } from '../../embeds/embeds.service';
+import { ActionLoggerService } from '../../action-logger/action-logger.service';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -33,6 +34,7 @@ export class HappyBirthdayService {
     private readonly client: Client,
     private readonly tenorGifService: TenorGifService,
     private readonly embedsService: EmbedsService,
+    private readonly actionLoggerService: ActionLoggerService,
   ) {}
 
   @Subcommand({
@@ -129,6 +131,14 @@ export class HappyBirthdayService {
           );
         }
 
+        await this.actionLoggerService.happyBirthdayConfigurationUpdate({
+          author: interaction.user,
+          timezone: timeZone,
+          timeWithTimezone: timeWithTimezone,
+          guildId: guildId,
+          channelId: channelId,
+        });
+
         await interaction.reply({
           content: 'Configuration has been successfully updated',
           ephemeral: true,
@@ -145,6 +155,15 @@ export class HappyBirthdayService {
           guildId: guildId,
         },
       });
+
+      await this.actionLoggerService.happyBirthdayConfigurationAdd({
+        author: interaction.user,
+        timezone: timeZone,
+        timeWithTimezone: timeWithTimezone,
+        guildId: guildId,
+        channelId: channelId,
+      });
+
       await interaction.reply({
         content: 'Configuration has been successfully created',
         ephemeral: true,
@@ -189,7 +208,7 @@ export class HappyBirthdayService {
 
       if (!happyBirthdayConfig || !happyBirthdayConfig.channelId) {
         await interaction.reply({
-          content: "You didn't have configurations to remove",
+          content: 'You do not have configurations to remove',
           ephemeral: true,
         });
         return;
@@ -203,6 +222,11 @@ export class HappyBirthdayService {
           channelId: null,
         },
       );
+
+      await this.actionLoggerService.happyBirthdayConfigurationRemove({
+        author: interaction.user,
+        guildId: guildId,
+      });
 
       await interaction.reply({
         content:
@@ -289,6 +313,14 @@ export class HappyBirthdayService {
         shortDate: readableDate,
       });
 
+      await this.actionLoggerService.happyBirthdayAdd({
+        author: interaction.user,
+        guildId: guildId,
+        shortDate: readableDate,
+        username: username,
+        userId: userId,
+      });
+
       await interaction.reply({
         content: `You have successfully added birthday of **${username}** to the list.`,
         ephemeral: true,
@@ -343,6 +375,14 @@ export class HappyBirthdayService {
         happyBirthdayId: birthdayId,
       });
 
+      await this.actionLoggerService.happyBirthdayRemove({
+        author: interaction.user,
+        guildId: guildId,
+        shortDate: happyBirthday.shortDate,
+        username: happyBirthday.username,
+        userId: happyBirthday.userId,
+      });
+
       await interaction.reply({
         content: `A record of **${happyBirthday.username}** has been removed`,
         ephemeral: true,
@@ -382,6 +422,11 @@ export class HappyBirthdayService {
         happyBirthdayConfiguration: {
           configurationId: happyBirthdayConfig.configurationId,
         },
+      });
+
+      await this.actionLoggerService.happyBirthdayRemoveAll({
+        author: interaction.user,
+        guildId: guildId,
       });
 
       await interaction.reply({
@@ -427,7 +472,7 @@ export class HappyBirthdayService {
           value: `<#${happyBirthdayConfig.channelId}>`,
         })
         .addFields({
-          name: `Time (timezone ${Number(happyBirthdayConfig.timezone) < 0 ? `-${happyBirthdayConfig.timezone}` : `+${happyBirthdayConfig.timezone}`})`,
+          name: `Time (GMT ${Number(happyBirthdayConfig.timezone) < 0 ? `-${happyBirthdayConfig.timezone}` : `+${happyBirthdayConfig.timezone}`})`,
           value: happyBirthdayConfig.timeWithTimezone,
           inline: true,
         })
