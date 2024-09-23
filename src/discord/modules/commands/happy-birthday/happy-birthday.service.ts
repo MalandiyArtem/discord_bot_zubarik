@@ -16,6 +16,7 @@ import { IDateParams } from '../schedule/interfaces/date-params.interface';
 import * as schedule from 'node-schedule';
 import { Client, TextChannel } from 'discord.js';
 import { TenorGifService } from '../../tenor-gif/tenor-gif.service';
+import { EmbedsService } from '../../embeds/embeds.service';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -31,6 +32,7 @@ export class HappyBirthdayService {
     private readonly happyBirthdayUtilService: HappyBirthdayUtilsService,
     private readonly client: Client,
     private readonly tenorGifService: TenorGifService,
+    private readonly embedsService: EmbedsService,
   ) {}
 
   @Subcommand({
@@ -353,6 +355,51 @@ export class HappyBirthdayService {
     await interaction.reply({
       content: `All birthdays have been successfully removed`,
       ephemeral: true,
+    });
+  }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_configuration_info,
+    description: 'Display config information',
+    dmPermission: false,
+  })
+  public async displayConfigInfo(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+      await interaction.reply({
+        content: 'Guild id can not be found. Try again',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const happyBirthdayConfig =
+      await this.findOrCreateHappyBirthdayConfig(guildId);
+
+    const embed = this.embedsService.getAddEmbed();
+    embed
+      .setTitle('Information about happy birthday configuration')
+      .addFields({
+        name: 'Channel',
+        value: `<#${happyBirthdayConfig.channelId}>`,
+      })
+      .addFields({
+        name: `Time (timezone ${Number(happyBirthdayConfig.timezone) < 0 ? `-${happyBirthdayConfig.timezone}` : `+${happyBirthdayConfig.timezone}`})`,
+        value: happyBirthdayConfig.timeWithTimezone,
+        inline: true,
+      })
+      .addFields({
+        name: 'Time (GMT 0)',
+        value: happyBirthdayConfig.timeGMT0,
+        inline: true,
+      });
+
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [embed],
     });
   }
 

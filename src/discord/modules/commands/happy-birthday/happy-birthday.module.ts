@@ -7,6 +7,7 @@ import { UtilsModule } from '../../utils/utils.module';
 import { HappyBirthdayEntity } from './entities/happy-birthday.entity';
 import { HappyBirthdayUtilsService } from './happy-birthday-utils.service';
 import { TenorGifModule } from '../../tenor-gif/tenor-gif.module';
+import { EmbedsModule } from '../../embeds/embeds.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TenorGifModule } from '../../tenor-gif/tenor-gif.module';
     ActionLoggerModule,
     UtilsModule,
     TenorGifModule,
+    EmbedsModule,
   ],
   providers: [HappyBirthdayService, HappyBirthdayUtilsService],
 })
