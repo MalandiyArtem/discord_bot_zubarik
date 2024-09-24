@@ -18,4 +18,5 @@ export enum CommandNamesEnum {
   happyBirthday_add = 'add',
   happyBirthday_remove = 'remove',
   happyBirthday_remove_all = 'remove-all',
+  happyBirthday_list = 'list',
 }

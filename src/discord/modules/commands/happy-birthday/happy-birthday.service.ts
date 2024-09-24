@@ -18,6 +18,8 @@ import { Client, TextChannel } from 'discord.js';
 import { TenorGifService } from '../../tenor-gif/tenor-gif.service';
 import { EmbedsService } from '../../embeds/embeds.service';
 import { ActionLoggerService } from '../../action-logger/action-logger.service';
+import { ModuleRef } from '@nestjs/core';
+import { HappyBirthdayPaginationService } from '../../pagination/happy-birthday/happy-birthday-pagination.service';
 
 @Injectable()
 @HappyBirthdayCommandDecorator()
@@ -35,6 +37,7 @@ export class HappyBirthdayService {
     private readonly tenorGifService: TenorGifService,
     private readonly embedsService: EmbedsService,
     private readonly actionLoggerService: ActionLoggerService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   @Subcommand({
@@ -512,6 +515,20 @@ export class HappyBirthdayService {
       });
       this.logger.error(`Show happy birthday configuration ${guildId}: ${e}`);
     }
+  }
+
+  @Subcommand({
+    name: CommandNamesEnum.happyBirthday_list,
+    description: 'Display all happy birthdays',
+    dmPermission: false,
+  })
+  public async displayAllHappyBirthdays(
+    @Context() [interaction]: SlashCommandContext,
+  ) {
+    const happyBirthdayListPaginationService = await this.moduleRef.create(
+      HappyBirthdayPaginationService,
+    );
+    await happyBirthdayListPaginationService.showList(interaction);
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
