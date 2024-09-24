@@ -16,6 +16,7 @@
    - [Apply shadow ban to user](#apply-shadow-ban-to-user)
    - [Roles management](#roles-management)
    - [Happy Birthday](#happy-birthday)
+   - [Say](#say)
    - [Displaying lists](#displaying-lists)
    - [Sending random gif](#sending-random-gif)
    - [Logs](#logs)
@@ -242,6 +243,23 @@ To delete all birthdays, use the following command
 ```
 /happy-birthday remove-all 
 ```
+
+### Say
+
+This command is designed to allow sending messages on behalf of the bot in the same channel where the command was invoked
+
+```
+/say [message?, attachment?]
+```
+
+> [!WARNING]
+> This command can be used only by users who have admin privileges
+
+
+| Parameter Name | Description                                        | Default value | Required | Note |
+|----------------|----------------------------------------------------|---------------|----------|------|
+| `message`      | The message that will be sent                      | -             | false    | -    |
+| `attachment`   | Any attachment that will be sent (photo/video/GIF) | -             | false    | -    |
 
 ### Displaying lists
 

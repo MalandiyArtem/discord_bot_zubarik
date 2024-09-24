@@ -15,6 +15,7 @@ import { GifModule } from './modules/commands/gif/gif.module';
 import { ScheduleModule } from './modules/commands/schedule/schedule.module';
 import { TenorGifModule } from './modules/tenor-gif/tenor-gif.module';
 import { HappyBirthdayModule } from './modules/commands/happy-birthday/happy-birthday.module';
+import { SayModule } from './modules/commands/say/say.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HappyBirthdayModule } from './modules/commands/happy-birthday/happy-bir
     ScheduleModule,
     TenorGifModule,
     HappyBirthdayModule,
+    SayModule,
   ],
   providers: [DiscordService, GuildService],
 })
