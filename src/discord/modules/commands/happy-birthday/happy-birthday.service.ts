@@ -569,6 +569,8 @@ export class HappyBirthdayService {
         (item) => item !== null,
       ) as HappyBirthdayEntity[];
 
+      if (validGreetings.length === 0) return;
+
       schedule.scheduleJob(validGreetings[0].dateGMT0, async () => {
         await this.sendGreetings(validGreetings, channel);
       });
