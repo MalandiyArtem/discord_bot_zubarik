@@ -15,6 +15,7 @@
    - [Adding reactions under user's message](#adding-reactions-under-users-message)
    - [Apply shadow ban to user](#apply-shadow-ban-to-user)
    - [Roles management](#roles-management)
+   - [Happy Birthday](#happy-birthday)
    - [Displaying lists](#displaying-lists)
    - [Sending random gif](#sending-random-gif)
    - [Logs](#logs)
@@ -178,6 +179,70 @@ To self-assign a role to yourself, use the following command. If you want to rem
 |----------------|--------------------------------------------------|---------------|----------|------|
 | `role`         | The role you want to assign/remove from yourself | -             | true     | -    |
 
+### Happy Birthday
+
+This function is designed for automatically sending birthday greetings to users. First, the channel and the time at which the bot will send the message need to be configured. Then, users and their birthdays must be added to the list
+
+> [!NOTE]
+> If a user is already added to the list, you will not be able to add them again.
+> If a user leaves the server, the bot will not send them birthday greetings.
+
+> [!WARNING]
+> These commands can be used only by users who have admin privileges
+
+To configure the settings, use the following command
+
+```
+/happy-birthday config [channel, timezone, hours?, minutes?, seconds?]
+```
+
+| Parameter Name | Description                                                               | Default value | Required | Note                                                                                                                                 |
+|----------------|---------------------------------------------------------------------------|---------------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `channel`      | The channel where the birthday greeting will be sent                      | -             | true     | You can only specify text channels. Additionally, you cannot specify text channels that are accessible while you are in a voice chat |
+| `timezone`     | The timezone specifies the time zone to which the date will be associated | -             | true     | -                                                                                                                                    |
+| `hours`        | The hours at which the greeting will be sent                              | 00            | false    | -                                                                                                                                    |
+| `minutes`      | The minutes at which the greeting will be sent                            | 00            | false    | -                                                                                                                                    |
+| `seconds`      | The seconds at which the greeting will be sent                            | 00            | false    | -                                                                                                                                    |
+
+
+To delete the configuration, after which the bot will no longer send birthday greetings, use the following command
+
+```
+/happy-birthday config-remove
+```
+
+To view the current configuration, use the following command
+```
+/happy-birthday config-info 
+```
+
+To add a new birthday to the list, use the following command
+```
+/happy-birthday add [user, username, day, month]
+```
+
+| Parameter Name | Description                                                                   | Default value | Required | Note                                                                                          |
+|----------------|-------------------------------------------------------------------------------|---------------|----------|-----------------------------------------------------------------------------------------------|
+| `user`         | The user who has a birthday                                                   | -             | true     | You must tag user using @ (the user will not receive notification while running this command) |
+| `username`     | The username of the user, which allows for assigning a nickname for the entry | -             | true     | -                                                                                             |
+| `day`          | The day of the birthday                                                       | -             | true     | -                                                                                             |
+| `month`        | The month of the birthday                                                     | -             | true     | -                                                                                             |
+
+To delete a single birthday, use the following command
+
+```
+/happy-birthday remove [id]
+```
+
+| Parameter Name | Description            | Default value | Required | Note                                                                       |
+|----------------|------------------------|---------------|----------|----------------------------------------------------------------------------|
+| `id`           | The id of the birthday | -             | true     | The record ID can be found by invoking the command `/happy-birthday list ` |
+
+To delete all birthdays, use the following command
+```
+/happy-birthday remove-all 
+```
+
 ### Displaying lists
 
 
@@ -206,6 +271,12 @@ To see all shadow bans configuration use following command:
 
 ```
 /shadow-ban-list
+```
+
+To see all saved happy birthday use following command:
+
+```
+/happy-birthday list 
 ```
 
 > [!WARNING]
@@ -256,6 +327,8 @@ The bot can log certain events, such as:
 - an administrator added a scheduled channel renaming
 - an administrator deleted a scheduled channel renaming
 - an administrator designated a channel for logs
+- an administrator add/update/remove happy birthday configuration
+- an administrator add/remove/remove-all happy birthday records
 
 For the bot to log all these events, the administrator needs to specify the channel where the logs will be sent by using the command:
 ```

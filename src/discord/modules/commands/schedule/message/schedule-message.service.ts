@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ScheduleCommandDecorator } from '../schedule-command-decorator';
 import { Context, Opts, SlashCommandContext, Subcommand } from 'necord';
 import { ScheduleMessageDto } from './dto/schedule-message.dto';
-import { ScheduleUtilsService } from '../schedule-utils.service';
 import { IDateParams } from '../interfaces/date-params.interface';
 import { TenorGifService } from '../../../tenor-gif/tenor-gif.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +13,7 @@ import { ScheduledMessagePaginationService } from '../../../pagination/scheduled
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as schedule from 'node-schedule';
 import { Client, TextChannel } from 'discord.js';
+import { UtilsService } from '../../../utils/utils.service';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -21,7 +21,7 @@ export class ScheduleMessageService {
   private readonly logger = new Logger(ScheduleMessageService.name);
 
   constructor(
-    private scheduleUtilsService: ScheduleUtilsService,
+    private utilsService: UtilsService,
     private tenorGifService: TenorGifService,
     @InjectRepository(ScheduledMessageEntity)
     private readonly scheduledMessageEntityRepository: Repository<ScheduledMessageEntity>,
@@ -62,9 +62,7 @@ export class ScheduleMessageService {
     const attachment = dto.attachment;
     const prompt = dto.prompt;
 
-    if (
-      !this.scheduleUtilsService.isDateParamsValid(dateParams, dto.timezone)
-    ) {
+    if (!this.utilsService.isDateParamsValid(dateParams, dto.timezone)) {
       await interaction.reply({
         content: `Your message has not been scheduled: invalid date params`,
         ephemeral: true,
@@ -82,11 +80,11 @@ export class ScheduleMessageService {
 
     const gifUrl = await this.tenorGifService.getRandomGif(prompt);
 
-    const scheduledDate = this.scheduleUtilsService.getScheduledDate(
+    const scheduledDate = this.utilsService.getGmtDate(
       dateParams,
       dto.timezone,
     );
-    const readableDate = `${this.scheduleUtilsService.getReadableDate(dateParams)} (GMT ${dto.timezone})`;
+    const readableDate = `${this.utilsService.getReadableDate(dateParams, 'full-date-and-time')} (GMT ${dto.timezone})`;
 
     const scheduledMessageResult =
       await this.scheduledMessageEntityRepository.save({

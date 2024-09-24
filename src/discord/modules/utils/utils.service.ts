@@ -4,6 +4,8 @@ import {
   ChannelType,
   ChatInputCommandInteraction,
 } from 'discord.js';
+import { IDateParams } from '../commands/schedule/interfaces/date-params.interface';
+import { ReadableDateType } from '../commands/schedule/interfaces/readable-date.type';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const emojiRegex = require('emoji-regex');
 
@@ -79,6 +81,103 @@ export class UtilsService {
       .filter((id) => id !== null) as string[];
 
     return emojiIds;
+  }
+
+  public getStringFormattedTime(time: number): string {
+    return time < 10 ? String(time).padStart(2, '0') : String(time);
+  }
+
+  public isDateParamsValid(dateParams: IDateParams, timezone: number): boolean {
+    try {
+      const currentDate = new Date().getTime();
+      const scheduledTime =
+        this.getTimestamp(dateParams) -
+        this.convertHoursToMilliseconds(timezone) +
+        this.convertHoursToMilliseconds(this.getCurrentTimezoneOffset());
+
+      if (scheduledTime <= currentDate) {
+        throw new Error('Invalid date');
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  public getTimestamp(dateParams: IDateParams): number {
+    try {
+      const month = this.getStringFormattedTime(dateParams.month);
+      const day = this.getStringFormattedTime(dateParams.day);
+      const hours = this.getStringFormattedTime(dateParams.hours);
+      const minutes = this.getStringFormattedTime(dateParams.minutes);
+      const seconds = this.getStringFormattedTime(dateParams.seconds);
+
+      const stringTime = `${dateParams.year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      const timestamp = new Date(stringTime).getTime();
+
+      if (Number.isNaN(timestamp)) {
+        throw new Error('Invalid date');
+      }
+
+      return timestamp;
+    } catch (e) {
+      throw new Error('Invalid date');
+    }
+  }
+
+  public getGmtDate(dateParams: IDateParams, timezone: number): Date {
+    const currentDate = new Date().getTime();
+    const scheduledTime =
+      this.getTimestamp(dateParams) -
+      this.convertHoursToMilliseconds(timezone) +
+      this.convertHoursToMilliseconds(this.getCurrentTimezoneOffset());
+
+    const deltaTime = scheduledTime - currentDate;
+    const date = new Date(currentDate + deltaTime);
+    return date;
+  }
+
+  public getReadableDate(
+    scheduledDate: IDateParams,
+    type: ReadableDateType,
+  ): string {
+    const day = this.getStringFormattedTime(scheduledDate.day);
+    const month = this.getStringFormattedTime(scheduledDate.month);
+    const year = scheduledDate.year;
+    const hours = this.getStringFormattedTime(scheduledDate.hours);
+    const minutes = this.getStringFormattedTime(scheduledDate.minutes);
+    const seconds = this.getStringFormattedTime(scheduledDate.seconds);
+
+    switch (type) {
+      case 'full-date-and-time': {
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+      }
+      case 'only-time': {
+        return `${hours}:${minutes}:${seconds}`;
+      }
+      case 'only-date': {
+        return `${day}.${month}.${year}`;
+      }
+      case 'date-without-year': {
+        return `${day}.${month}`;
+      }
+      default: {
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+      }
+    }
+  }
+
+  private convertHoursToMilliseconds(hours: number) {
+    return hours * 60 * 60 * 1000;
+  }
+  private getCurrentTimezoneOffset() {
+    const now = new Date();
+    const timeZoneOffset = now.getTimezoneOffset();
+
+    const hoursOffset = Math.abs(Math.floor(timeZoneOffset / 60));
+
+    return timeZoneOffset > 0 ? hoursOffset * -1 : hoursOffset;
   }
 
   private isChannel(channel: string): boolean {
