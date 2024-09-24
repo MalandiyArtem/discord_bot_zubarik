@@ -285,6 +285,25 @@ export class HappyBirthdayService {
       const happyBirthdayConfig =
         await this.findOrCreateHappyBirthdayConfig(guildId);
 
+      const happyBirthdays = await this.happyBirthdayRepository.find({
+        where: {
+          happyBirthdayConfiguration: {
+            configurationId: happyBirthdayConfig.configurationId,
+          },
+        },
+      });
+
+      const isUserAlreadyAdded =
+        happyBirthdays.filter((item) => item.userId === userId).length > 0;
+
+      if (isUserAlreadyAdded) {
+        await interaction.reply({
+          content: `**${username}** is already added`,
+          ephemeral: true,
+        });
+        return;
+      }
+
       const [hours, minutes, seconds] =
         happyBirthdayConfig.timeWithTimezone.split(':');
 
