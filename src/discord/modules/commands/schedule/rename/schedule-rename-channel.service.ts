@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ScheduleCommandDecorator } from '../schedule-command-decorator';
 import { Context, Opts, SlashCommandContext, Subcommand } from 'necord';
 import { ScheduleRenameChannelDto } from './dto/schedule-rename-channel.dto';
-import { ScheduleUtilsService } from '../schedule-utils.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ScheduledRenameEntity } from './entities/scheduled-rename.entity';
@@ -13,6 +12,7 @@ import { ScheduledRenamePaginationService } from '../../../pagination/scheduled/
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as schedule from 'node-schedule';
 import { Client, TextChannel, VoiceChannel } from 'discord.js';
+import { UtilsService } from '../../../utils/utils.service';
 
 @Injectable()
 @ScheduleCommandDecorator()
@@ -20,7 +20,7 @@ export class ScheduleRenameChannelService {
   private readonly logger = new Logger(ScheduleRenameChannelService.name);
 
   constructor(
-    private scheduleUtilsService: ScheduleUtilsService,
+    private utilsService: UtilsService,
     @InjectRepository(ScheduledRenameEntity)
     private readonly scheduledRenameEntityRepository: Repository<ScheduledRenameEntity>,
     private readonly actionLoggerService: ActionLoggerService,
@@ -57,9 +57,7 @@ export class ScheduleRenameChannelService {
       seconds: dto.seconds || 0,
     };
 
-    if (
-      !this.scheduleUtilsService.isDateParamsValid(dateParams, dto.timezone)
-    ) {
+    if (!this.utilsService.isDateParamsValid(dateParams, dto.timezone)) {
       await interaction.reply({
         content: `Renaming has not been scheduled: invalid date params`,
         ephemeral: true,
@@ -67,11 +65,11 @@ export class ScheduleRenameChannelService {
       return Promise.resolve();
     }
 
-    const scheduledDate = this.scheduleUtilsService.getScheduledDate(
+    const scheduledDate = this.utilsService.getGmtDate(
       dateParams,
       dto.timezone,
     );
-    const readableDate = `${this.scheduleUtilsService.getReadableDate(dateParams)} (GMT ${dto.timezone})`;
+    const readableDate = `${this.utilsService.getReadableDate(dateParams, 'full-date-and-time')} (GMT ${dto.timezone})`;
 
     const scheduledRenameResult =
       await this.scheduledRenameEntityRepository.save({

@@ -16,6 +16,13 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { CACHE_KEYS } from '../../../constants/cache';
 import { ScheduleMessageParams } from './types/schedule-message-params';
 import { ScheduleRenameParams } from './types/schedule-rename-params';
+import {
+  HappyBirthdayAddParams,
+  HappyBirthdayRemoveAllParams,
+  HappyBirthdayRemoveParams,
+  RemoveHappyBirthdayConfigurationParams,
+  SetUpHappyBirthdayConfigurationParams,
+} from './types/happy-birthday-params';
 
 @Injectable()
 export class ActionLoggerService {
@@ -502,6 +509,198 @@ export class ActionLoggerService {
       await logChannel.send({ embeds: [embed] });
     } catch (e) {
       this.logger.error(`Schedule Rename Add ${options.guildId}: ${e}`);
+    }
+  }
+
+  public async happyBirthdayConfigurationAdd(
+    options: SetUpHappyBirthdayConfigurationParams,
+  ) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('Configuration for happy birthdays has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Configuration has been added by <@${options.author?.id}>`,
+        })
+        .addFields({
+          name: `Time (GMT ${Number(options.timezone) < 0 ? `-${options.timezone}` : `+${options.timezone}`})`,
+          value: options.timeWithTimezone,
+          inline: true,
+        })
+        .addFields({
+          name: 'Channel name',
+          value: `<#${options.channelId}>`,
+          inline: true,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action logger] Happy Birthday Config Add ${options.guildId}: ${e}`,
+      );
+    }
+  }
+
+  public async happyBirthdayConfigurationUpdate(
+    options: SetUpHappyBirthdayConfigurationParams,
+  ) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getUpdateEmbed()
+        .setTitle('Configuration for happy birthdays has been updated')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Configuration has been updated by <@${options.author?.id}>`,
+        })
+        .addFields({
+          name: `Time (GMT ${Number(options.timezone) < 0 ? `-${options.timezone}` : `+${options.timezone}`})`,
+          value: options.timeWithTimezone,
+          inline: true,
+        })
+        .addFields({
+          name: 'Channel name',
+          value: `<#${options.channelId}>`,
+          inline: true,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action Logger] Happy Birthday Config Update ${options.guildId}: ${e}`,
+      );
+    }
+  }
+
+  public async happyBirthdayConfigurationRemove(
+    options: RemoveHappyBirthdayConfigurationParams,
+  ) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Configuration for happy birthdays has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Configuration has been removed by <@${options.author?.id}>`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action Logger] Happy Birthday Config Remove ${options.guildId}: ${e}`,
+      );
+    }
+  }
+
+  public async happyBirthdayAdd(options: HappyBirthdayAddParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getAddEmbed()
+        .setTitle('New happy birthday has been added')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `New happy birthday has been added by <@${options.author?.id}>`,
+        })
+        .addFields({
+          name: 'User',
+          value: `<@${options.userId}>`,
+          inline: true,
+        })
+        .addFields({
+          name: 'Username',
+          value: options.username,
+          inline: true,
+        })
+        .addFields({
+          name: 'Date',
+          value: options.shortDate,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action Logger] Happy Birthday Add ${options.guildId}: ${e}`,
+      );
+    }
+  }
+
+  public async happyBirthdayRemove(options: HappyBirthdayRemoveParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('Happy birthday has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `Happy birthday has been removed by <@${options.author?.id}>`,
+        })
+        .addFields({
+          name: 'User',
+          value: `<@${options.userId}>`,
+          inline: true,
+        })
+        .addFields({
+          name: 'Username',
+          value: options.username,
+          inline: true,
+        })
+        .addFields({
+          name: 'Date',
+          value: options.shortDate,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action Logger] Happy Birthday Remove ${options.guildId}: ${e}`,
+      );
+    }
+  }
+
+  public async happyBirthdayRemoveAll(options: HappyBirthdayRemoveAllParams) {
+    try {
+      const logChannel = await this.getLogChannel(options.guildId);
+
+      if (!logChannel) return Promise.resolve();
+
+      const embed = this.embedsService
+        .getRemoveEmbed()
+        .setTitle('All happy birthdays has been removed')
+        .setThumbnail(options.author?.avatarURL() || null)
+        .addFields({
+          name: ' ',
+          value: `All happy birthdays has been removed by <@${options.author?.id}>`,
+        });
+
+      await logChannel.send({ embeds: [embed] });
+    } catch (e) {
+      this.logger.error(
+        `[Action Logger] Happy Birthday Remove All ${options.guildId}: ${e}`,
+      );
     }
   }
 
