@@ -533,6 +533,7 @@ export class HappyBirthdayService {
           'birthday.happyBirthdayConfiguration',
           'configuration',
         )
+        .leftJoinAndSelect('configuration.guild', 'guild')
         .where('birthday.dateGMT0 <= :date', { date: utcDate })
         .andWhere('birthday.dateGMT0 > :dateMinusOne', {
           dateMinusOne: utcDateMinusOneMinuteISOString,
@@ -550,8 +551,26 @@ export class HappyBirthdayService {
 
       if (!channel) return;
 
-      schedule.scheduleJob(greetingsToBeSent[0].dateGMT0, async () => {
-        await this.sendGreetings(greetingsToBeSent, channel);
+      const guildId =
+        greetingsToBeSent[0].happyBirthdayConfiguration.guild.guildId;
+
+      const guild = await this.client.guilds.fetch(guildId);
+      const filteredGreetings = await Promise.all(
+        greetingsToBeSent.map(async (item) => {
+          try {
+            const member = await guild.members.fetch(item.userId);
+            return member ? item : null;
+          } catch (e) {
+            return null;
+          }
+        }),
+      );
+      const validGreetings = filteredGreetings.filter(
+        (item) => item !== null,
+      ) as HappyBirthdayEntity[];
+
+      schedule.scheduleJob(validGreetings[0].dateGMT0, async () => {
+        await this.sendGreetings(validGreetings, channel);
       });
     } catch (e) {
       this.logger.error(`Send Greetings Cron: `, e);
