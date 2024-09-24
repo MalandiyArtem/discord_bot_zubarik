@@ -1,7 +1,7 @@
 <h1 style="text-align: center;">Discord Bot Зубарик</h1>
 
 <p style="text-align: center;">
-    <img alt="Static Badge" src="https://img.shields.io/badge/version-v2.0.2-green">
+    <img alt="Static Badge" src="https://img.shields.io/badge/version-v2.1.0-green">
 </p>
 
 <p style="text-align: center;">
